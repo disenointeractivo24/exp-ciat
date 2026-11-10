@@ -1,0 +1,7 @@
+node_modules/
+dist/
+export/
+export.zip
+*.log
+.DS_Store
+__MACOSX/
