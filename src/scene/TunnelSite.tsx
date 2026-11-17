@@ -1,5 +1,6 @@
 // What the tunnel looks onto from its stable-side windows: the cows in a fenced paddock (no building).
 import { useMemo, useRef } from 'react';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { heightAt } from '../lib/terrain';
@@ -14,6 +15,12 @@ const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 const gy = (x: number, z: number) => heightAt(x, z);
 
 // ---------------------------------------------------------------- cows
+/** Body and four legs merged once (same coat material): one draw per cow instead of five. */
+const COW_BODY = (() => {
+  const body = new THREE.CapsuleGeometry(0.36, 0.95, 6, 12); body.rotateZ(Math.PI / 2); body.translate(0, 0.95, 0);
+  const legs = [[-0.5, -0.2], [-0.5, 0.2], [0.5, -0.2], [0.5, 0.2]].map(([lx, lz]) => { const g = new THREE.CylinderGeometry(0.07, 0.06, 0.7, 8); g.translate(lx, 0.35, lz); return g; });
+  return mergeGeometries([body, ...legs].map((g) => g.toNonIndexed()));
+})();
 function Cow({ x, z, yaw, seed }: { x: number; z: number; yaw: number; seed: number }) {
   const head = useRef<THREE.Group>(null);
   const coat = useMemo(() => new THREE.MeshStandardMaterial({ map: cowTexture(seed), roughness: 0.8 }), [seed]);
@@ -23,10 +30,7 @@ function Cow({ x, z, yaw, seed }: { x: number; z: number; yaw: number; seed: num
   useFrame(() => { if (head.current) head.current.rotation.x = 0.35 + Math.sin(env.elapsed * 0.6 + ph) * 0.25; });
   return (
     <group position={[x, gy(x, z), z]} rotation-y={yaw}>
-      <mesh position={[0, 0.95, 0]} rotation-z={Math.PI / 2} material={coat} castShadow><capsuleGeometry args={[0.36, 0.95, 6, 12]} /></mesh>
-      {[[-0.5, -0.2], [-0.5, 0.2], [0.5, -0.2], [0.5, 0.2]].map(([lx, lz]) => (
-        <mesh key={`${lx}${lz}`} position={[lx, 0.35, lz]} material={coat} castShadow><cylinderGeometry args={[0.07, 0.06, 0.7, 8]} /></mesh>
-      ))}
+      <mesh geometry={COW_BODY} material={coat} castShadow />
       <group ref={head} position={[0.85, 1.1, 0]}>
         <mesh position={[0.22, -0.05, 0]} material={coat} castShadow><boxGeometry args={[0.42, 0.3, 0.26]} /></mesh>
         <mesh position={[0.45, -0.1, 0]} material={pink}><boxGeometry args={[0.1, 0.18, 0.22]} /></mesh>
@@ -44,6 +48,18 @@ const COWS: { x: number; z: number; yaw: number }[] = [
   [-41, -22], [-44, -25.5], [-39, -46], [-52, -12], [-55, -16],
   [-63, -38], [-66, -34.5], [-72, -8], [-78, -27],
 ].map(([x, z], i) => ({ x: Math.max(PADDOCK.x0 + 2, Math.min(PADDOCK.x1 - 2, x)), z: Math.max(PADDOCK.z0 + 2, Math.min(PADDOCK.z1 - 2, z)), yaw: (i * 2.39) % 6.28 }));
+
+/** All fence posts in one instanced draw. */
+function FencePosts({ posts }: { posts: [number, number][] }) {
+  const mesh = useMemo(() => {
+    const m = new THREE.InstancedMesh(new THREE.BoxGeometry(0.1, 1.55, 0.1), MAT.woodWarm, posts.length);
+    const o = new THREE.Object3D();
+    posts.forEach(([x, z], i) => { o.position.set(x, gy(x, z) + 0.75, z); o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
+    m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.castShadow = true;
+    return m;
+  }, [posts]);
+  return <primitive object={mesh} />;
+}
 
 // ---------------------------------------------------------------- paddock (fences only), right beside the tunnel
 export function Stable() {
@@ -65,7 +81,7 @@ export function Stable() {
   return (
     <group>
       <group name="Establo_corral">
-        {posts.map(([x, z], i) => <T key={i} s={[0.1, 1.55, 0.1]} p={[x, gy(x, z) + 0.75, z]} m={MAT.woodWarm} />)}
+        <FencePosts posts={posts} />
         <Culms culms={fence} name="Establo_corral_cercas" />
       </group>
       <group name="Vacas">{COWS.map((c, i) => <Cow key={i} {...c} seed={i + 1} />)}</group>

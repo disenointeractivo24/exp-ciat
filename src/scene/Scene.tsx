@@ -17,6 +17,10 @@ import { Binoculars, Plates, TactileModel } from './Extras';
 import { GuaduaTunnel } from './Tunnel';
 import { Stable } from './TunnelSite';
 import { CiatContext } from './CiatContext';
+import { MergeStatic } from './MergeStatic';
+
+// static groups whose small parts are batched into a few meshes (see MergeStatic)
+const STATIC_GROUPS = ['Barandas', 'Rampa_accesible', 'Piso_y_estructura_inferior', 'Estructura_y_pergola', 'Maqueta_tactil', 'Tunel_marcos_fotos_establo', 'Tunel_medallones_piso', 'Establo_corral', 'Banca oeste', 'Banca este', 'Banca sur'];
 import { SignageExtras } from './SignageExtras';
 
 function Effects() {
@@ -68,6 +72,7 @@ export function Scene() {
         <Stable />
         <CiatContext />
         <SignageExtras />
+        <MergeStatic names={STATIC_GROUPS} />
         <CameraRig />
         <Effects />
       </Suspense>

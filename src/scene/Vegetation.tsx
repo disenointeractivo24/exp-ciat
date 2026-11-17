@@ -159,44 +159,63 @@ function useInstances(ref: React.RefObject<THREE.InstancedMesh | null>, cards: C
   }, [ref, cards, seed, flat]);
 }
 
-export function Trees() {
+// Trees are split into spatial chunks so whole groups are frustum-culled (by the camera and by the sun's shadow
+// camera). Near chunks cast and receive shadows; the distant CIAT plan trees are light crowns that cast none.
+const NEAR_CELL = 40, FAR_CELL = 160;
+interface TreeMats { leaf: THREE.Material; bamboo: THREE.Material; bark: THREE.Material; frond: THREE.Material; culm: THREE.Material; dry: THREE.Material; card: THREE.BufferGeometry }
+
+function TreeChunk({ trees, far, m, seed }: { trees: TreeDef[]; far: boolean; m: TreeMats; seed: number }) {
   const data = useMemo(() => {
     const trunks: THREE.BufferGeometry[] = [], culms: THREE.BufferGeometry[] = [], cards: Card[] = [], bamboo: Card[] = [], fronds: THREE.BufferGeometry[] = [], dry: THREE.BufferGeometry[] = [];
-    for (const t of TREES) buildTree(t, trunks, culms, cards, bamboo, fronds, dry);
-    return { trunk: mergeGeometries(trunks), culm: culms.length ? mergeGeometries(culms) : null, cards, bamboo, frond: fronds.length ? mergeGeometries(fronds) : null, dry: dry.length ? mergeGeometries(dry) : null };
-  }, []);
-  const leafMat = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({ map: leafCardTexture('canopy'), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8 });
-    addWind(m, 0.05, false);
-    return m;
-  }, []);
-  const bambooMat = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({ map: leafCardTexture('bamboo'), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8 });
-    addWind(m, 0.08, false);
-    return m;
-  }, []);
-  const barkMat = useMemo(() => new THREE.MeshStandardMaterial({ map: barkTexture(), roughness: 0.95, color: '#9c8a78' }), []);
-  const frondMat = useMemo(() => { const m = new THREE.MeshStandardMaterial({ color: '#4f7a2e', roughness: 0.7, side: THREE.DoubleSide }); addWind(m, 0.04, false); return m; }, []);
-  const card = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
+    for (const t of trees) buildTree(t, trunks, culms, cards, bamboo, fronds, dry);
+    const merge = (a: THREE.BufferGeometry[]) => (a.length ? mergeGeometries(a) : null);
+    return { trunk: merge(trunks), culm: merge(culms), cards, bamboo, frond: merge(fronds), dry: merge(dry) };
+  }, [trees]);
   const leaves = useRef<THREE.InstancedMesh>(null);
   const bleaves = useRef<THREE.InstancedMesh>(null);
-  useInstances(leaves, data.cards, 5);
-  useInstances(bleaves, data.bamboo, 6);
-  useFrame((_, dt) => { windTime.value += dt; });
+  useInstances(leaves, data.cards, seed);
+  useInstances(bleaves, data.bamboo, seed + 1);
+  const sh = !far;
   return (
     <group>
-      <mesh geometry={data.trunk} material={barkMat} castShadow receiveShadow />
-      {data.culm && (
-        <mesh geometry={data.culm} castShadow>
-          <meshStandardMaterial color="#7b9640" roughness={0.45} />
-        </mesh>
-      )}
-      {data.frond && <mesh geometry={data.frond} material={frondMat} castShadow receiveShadow />}
-      {data.dry && <mesh geometry={data.dry} castShadow><meshStandardMaterial color="#8a7350" roughness={0.95} side={THREE.DoubleSide} /></mesh>}
-      <instancedMesh ref={leaves} args={[card, leafMat, data.cards.length]} castShadow receiveShadow frustumCulled={false} />
-      <instancedMesh ref={bleaves} args={[card, bambooMat, data.bamboo.length]} castShadow frustumCulled={false} />
+      {data.trunk && <mesh geometry={data.trunk} material={m.bark} castShadow={sh} receiveShadow={sh} />}
+      {data.culm && <mesh geometry={data.culm} material={m.culm} castShadow={sh} />}
+      {data.frond && <mesh geometry={data.frond} material={m.frond} castShadow={sh} receiveShadow={sh} />}
+      {data.dry && <mesh geometry={data.dry} material={m.dry} castShadow={sh} />}
+      {data.cards.length > 0 && <instancedMesh ref={leaves} args={[m.card, m.leaf, data.cards.length]} castShadow={sh} receiveShadow={sh} />}
+      {data.bamboo.length > 0 && <instancedMesh ref={bleaves} args={[m.card, m.bamboo, data.bamboo.length]} castShadow={sh} />}
     </group>
   );
+}
+
+export function Trees() {
+  const chunks = useMemo(() => {
+    const by = new Map<string, TreeDef[]>();
+    for (const t of TREES) {
+      const c = t.far ? FAR_CELL : NEAR_CELL;
+      const k = (t.far ? 'f' : 'n') + Math.floor(t.x / c) + ',' + Math.floor(t.z / c);
+      if (!by.has(k)) by.set(k, []);
+      by.get(k)!.push(t);
+    }
+    return [...by].map(([k, trees]) => ({ k, far: k[0] === 'f', trees }));
+  }, []);
+  const m = useMemo<TreeMats>(() => {
+    const leaf = new THREE.MeshStandardMaterial({ map: leafCardTexture('canopy'), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8 });
+    addWind(leaf, 0.05, false);
+    const bamboo = new THREE.MeshStandardMaterial({ map: leafCardTexture('bamboo'), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8 });
+    addWind(bamboo, 0.08, false);
+    const frond = new THREE.MeshStandardMaterial({ color: '#4f7a2e', roughness: 0.7, side: THREE.DoubleSide });
+    addWind(frond, 0.04, false);
+    return {
+      leaf, bamboo, frond,
+      bark: new THREE.MeshStandardMaterial({ map: barkTexture(), roughness: 0.95, color: '#9c8a78' }),
+      culm: new THREE.MeshStandardMaterial({ color: '#7b9640', roughness: 0.45 }),
+      dry: new THREE.MeshStandardMaterial({ color: '#8a7350', roughness: 0.95, side: THREE.DoubleSide }),
+      card: new THREE.PlaneGeometry(1, 1),
+    };
+  }, []);
+  useFrame((_, dt) => { windTime.value += dt; });
+  return <group name="Arboles">{chunks.map((c, i) => <TreeChunk key={c.k} trees={c.trees} far={c.far} m={m} seed={5 + i * 2} />)}</group>;
 }
 
 function crossQuads(w: number, h: number) {

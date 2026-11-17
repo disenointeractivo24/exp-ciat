@@ -10,7 +10,7 @@ import { PlankWalk } from './Tunnel';
 
 export function Terrain() {
   const geo = useMemo(() => {
-    const size = 200, seg = 220;
+    const size = 200, seg = 160; // ~1.25 m grid: enough for the gentle valley floor
     const g = new THREE.PlaneGeometry(size, size, seg, seg);
     g.rotateX(-Math.PI / 2);
     const pos = g.attributes.position as THREE.BufferAttribute;

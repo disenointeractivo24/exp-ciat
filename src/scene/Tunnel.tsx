@@ -68,6 +68,29 @@ function useLatticeGeometries() {
 
 const PANEL_COLORS = [PALETTE.forest, PALETTE.olive, '#2f5a45'];
 
+/** Many copies of a few lattice panels: one instanced draw per (geometry, colour) pair instead of one mesh each. */
+function Placed({ items, mats, receiveShadow = false }: { items: { pos: THREE.Vector3; yaw: number; geo: THREE.BufferGeometry; mat: number }[]; mats: THREE.Material[]; receiveShadow?: boolean }) {
+  const groups = useMemo(() => {
+    const by = new Map<string, { geo: THREE.BufferGeometry; mat: number; ms: THREE.Matrix4[] }>();
+    const o = new THREE.Object3D();
+    for (const it of items) {
+      const k = it.geo.uuid + '|' + it.mat;
+      if (!by.has(k)) by.set(k, { geo: it.geo, mat: it.mat, ms: [] });
+      o.position.copy(it.pos); o.rotation.set(0, it.yaw, 0); o.updateMatrix();
+      by.get(k)!.ms.push(o.matrix.clone());
+    }
+    return [...by.values()].map((g) => {
+      const m = new THREE.InstancedMesh(g.geo, mats[g.mat], g.ms.length);
+      g.ms.forEach((mx, i) => m.setMatrixAt(i, mx));
+      m.instanceMatrix.needsUpdate = true;
+      m.computeBoundingSphere();
+      m.castShadow = true; m.receiveShadow = receiveShadow;
+      return m;
+    });
+  }, [items, mats, receiveShadow]);
+  return <>{groups.map((m, i) => <primitive key={i} object={m} />)}</>;
+}
+
 // ---------------------------------------------------------------- rotating prism (silhouette / information / frame)
 const PRISM_A = 0.62, PRISM_HGT = (PRISM_A - 0.03) / ASPECT.ave + 0.04; // faces keep the cards' proportions
 function Prism({ idx, pos, faceYaw }: { idx: number; pos: THREE.Vector3; faceYaw: number }) {
@@ -380,7 +403,7 @@ export function GuaduaTunnel() {
       } else if (roofPanel(i)) {
         const mid = A.c.clone().add(B.c).multiplyScalar(0.5).setY(top + 0.12);
         const ch = B.c.clone().sub(A.c);
-        roofs.push({ pos: mid, yaw: Math.atan2(-ch.z, ch.x), geo: lattice.roof[i % 3], mat: (i / 2) % 3 });
+        roofs.push({ pos: mid, yaw: Math.atan2(-ch.z, ch.x), geo: lattice.roof[i % 3], mat: Math.floor(i / 2) % 3 });
       }
     }
     return { culms, panels, roofs, birdRoofs, boards, prisms, medal, glowSpots, strips, frameSpots, canutos };
@@ -407,14 +430,10 @@ export function GuaduaTunnel() {
       <Boardwalk />
       <Culms culms={data.culms} name="Tunel_estructura_guadua" />
       <group name="Tunel_celosias_paredes">
-        {data.panels.map((p, i) => (
-          <mesh key={i} geometry={p.geo} material={panelMats[p.mat]} position={p.pos} rotation-y={p.yaw} castShadow receiveShadow />
-        ))}
+        <Placed items={data.panels} mats={panelMats} receiveShadow />
       </group>
       <group name="Tunel_celosias_techo">
-        {data.roofs.map((p, i) => (
-          <mesh key={i} geometry={p.geo} material={panelMats[p.mat]} position={p.pos} rotation-y={p.yaw} castShadow />
-        ))}
+        <Placed items={data.roofs} mats={panelMats} />
       </group>
       <group name="Tunel_panel_establo">
         {data.boards.map((b, i) => (

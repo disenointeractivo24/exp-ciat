@@ -83,14 +83,14 @@ TREES.push({ x: 9.5, z: 12.5, h: 12, r: 2.4, kind: 'guadua', seed: 4, far: false
 })();
 
 // Real trees of the CIAT plan around the site, drawn with the same tree model as the rest of the scene.
-// Near ones get full detail; far ones use the lighter "far" crowns. Beyond ~600 m the haze hides them.
+// Near ones get full detail; far ones use the lighter "far" crowns. Only up to ~320 m: the experience is the trail and the deck, the rest is haze.
 (() => {
   for (const [x, z, cr] of planCtx.trees as [number, number, number][]) {
     const d = Math.hypot(x, z);
-    if (d > 600) continue;
+    if (d > 320) continue;
     const h = Math.abs(Math.sin(x * 12.9898 + z * 78.233)) % 1;
     const r = Math.min(7, Math.max(2.2, cr * 1.1));
-    TREES.push({ x, z, h: 6.5 + r * 1.45 + h * 2, r, kind: h < 0.45 ? 'saman' : 'round', seed: Math.floor(h * 1e6) + 7, far: d > 140 });
+    TREES.push({ x, z, h: 6.5 + r * 1.45 + h * 2, r, kind: h < 0.45 ? 'saman' : 'round', seed: Math.floor(h * 1e6) + 7, far: d > 110 });
   }
 })();
 
