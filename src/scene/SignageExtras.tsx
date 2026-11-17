@@ -14,10 +14,39 @@ import { Culms, culm } from './Guadua';
 // ---------------------------------------------------------------- animal cut-outs (wayfinding)
 type AnimalKey = keyof typeof SIGNAGE.animales;
 /** Laser-cut board in the animal's outline, printed on the front, plain dark on the back, on a guadua post. */
+/** The urutau «Deck» art has its arrow pointing right (↗); here the deck is to the left, so only the arrow is
+ *  mirrored (↖) — the lettering stays as drawn. Pixel box of the arrow in the 900 × 1362 artwork. */
+const ARROW_BOX = { x: 418, y: 204, w: 108, h: 110 };
+const flippedCache = new Map<string, THREE.Texture>();
+function arrowFlipped(url: string) {
+  let t = flippedCache.get(url);
+  if (t) return t;
+  const cv = document.createElement('canvas');
+  cv.width = 900; cv.height = 1362; // final size up front: the GPU texture is allocated once
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const img = new Image();
+  img.onload = () => {
+    const g = cv.getContext('2d')!;
+    g.drawImage(img, 0, 0, cv.width, cv.height);
+    const k = 1, { x, y, w, h } = ARROW_BOX;
+    const part = g.getImageData(x * k, y * k, w * k, h * k);
+    const tmp = document.createElement('canvas'); tmp.width = part.width; tmp.height = part.height;
+    tmp.getContext('2d')!.putImageData(part, 0, 0);
+    g.clearRect(x * k, y * k, w * k, h * k);
+    g.save(); g.translate((x + w) * k, y * k); g.scale(-1, 1); g.drawImage(tmp, 0, 0); g.restore();
+    tex.needsUpdate = true;
+  };
+  img.src = url;
+  flippedCache.set(url, tex);
+  t = tex;
+  return t;
+}
+
 function AnimalCutout({ k, height, pos, yaw, y, lift = 0.3, post = true }: { k: AnimalKey; height: number; pos: [number, number]; yaw: number; y?: number; lift?: number; post?: boolean }) {
   const a = SIGNAGE.animales[k];
   const mats = useMemo(() => {
-    const t = signTex(a.url);
+    const t = k === 'urutau' ? arrowFlipped(a.url) : signTex(a.url);
     return {
       front: new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, roughness: 0.55 }),
       back: new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, roughness: 0.65, color: '#33463a', side: THREE.BackSide }),
@@ -109,10 +138,10 @@ export function SignageExtras() {
     const header = f0.p.clone().addScaledVector(f0.t, -0.12).setY(fy + TUNNEL_H + 0.5);
     const iconAt = f0.p.clone().addScaledVector(f0.r, w0 / 2 + 0.4).addScaledVector(f0.t, -0.3); // right of the portal (the mupi stands on the left)
     // where the tunnel opens onto the lagoon: «Laguna» board on the lagoon (left) side, facing the walker
-    const s = OPEN_FROM - 3, f1 = frameAt(s);
+    const s = OPEN_FROM - 4, f1 = frameAt(s), fs = frameAt(OPEN_FROM - 16); // before the bend; square to the straight run of the tunnel
     const lag = f1.p.clone().addScaledVector(f1.r, -(widthAt(s) / 2 + 0.7));
     const fulicaAt = f0.p.clone().addScaledVector(f0.r, w0 / 2 + 1.5).addScaledVector(f0.t, -0.8); // beside the portal, past the icon post
-    return { header, headerYaw: yawFacing(out.x, out.z), iconAt, fulicaAt, lag, lagYaw: yawFacing(-f1.t.x, -f1.t.z) };
+    return { header, headerYaw: yawFacing(out.x, out.z), iconAt, fulicaAt, lag, lagYaw: yawFacing(-fs.t.x, -fs.t.z) };
   }, []);
   const headerMat = useMemo(() => [MAT.forest, MAT.forest, MAT.forest, MAT.forest, new THREE.MeshStandardMaterial({ map: signTex(SIGNAGE.hTunel), roughness: 0.6, alphaTest: 0.5 }), MAT.forest], []);
   const HW = 1.5, HH = HW / ASPECT.horizontal;

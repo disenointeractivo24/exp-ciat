@@ -50,7 +50,7 @@ export function Lagoon() {
     if (mat.current) {
       const m = env.nightMix;
       mat.current.color.set('#3c5a4c').lerp(new THREE.Color('#1a2a3a'), m);
-      mat.current.mixStrength = 2.4 + m * 2.5;
+      mat.current.mixStrength = 0.9 + m * 1.6; // soft, low reflection (lighter on the GPU too)
     }
   });
   return (
@@ -58,16 +58,16 @@ export function Lagoon() {
       <planeGeometry args={[LAGOON.rx * 2 + 24, LAGOON.rz * 2 + 24]} />
       <MeshReflectorMaterial
         ref={mat}
-        resolution={512}
-        mirror={0.85}
+        resolution={256}
+        mirror={0.4}
         mixBlur={0.6}
-        blur={[80, 30]}
-        mixStrength={2.4}
+        blur={[220, 90]}
+        mixStrength={0.9}
         mixContrast={1}
         depthScale={0}
         minDepthThreshold={0.9}
         maxDepthThreshold={1}
-        roughness={0.12}
+        roughness={0.35}
         metalness={0.1}
         color="#3c5a4c"
         normalMap={normal}
