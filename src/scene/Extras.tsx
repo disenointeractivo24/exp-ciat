@@ -1,14 +1,12 @@
 // Physical, buildable devices that replace what used to exist only on screen:
-// rubbing plates (paper passport), shadow clock, tactile relief model, fixed binoculars and the canopy mirror.
+// rubbing plates (paper passport), the tactile relief model at the centre of the deck and fixed binoculars.
 import { useCallback, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { MeshReflectorMaterial } from '@react-three/drei';
 import * as THREE from 'three';
-import { BINOC, CLOCK_HOURS, FLOOR_Y, MAQUETA, MIRROR, OCULUS, PALETTE, PLATES, ROOF_Y, TOWER, WATER_Y, type PlateDef } from '../lib/layout';
-import { hourTexture, plaqueTexture, plateTextures, PLATE_LABEL } from '../lib/realTextures';
+import { BINOC, FLOOR_Y, MAQUETA, PALETTE, PLATES, WATER_Y, type PlateDef } from '../lib/layout';
+import { plaqueTexture, plateTextures, PLATE_LABEL } from '../lib/realTextures';
 import { heightAt } from '../lib/terrain';
 import { TREES } from '../lib/vegData';
-import { sunDirAt } from '../lib/sun';
 import { TUNNEL_SAMPLES } from '../lib/tunnel';
 import { useInteractable } from '../lib/interact';
 import { sound } from '../lib/audio';
@@ -66,53 +64,8 @@ export function Plates() {
   return <>{PLATES.map((p) => <Plate key={p.node} p={p} />)}</>;
 }
 
-// ---------------------------------------------------------------- shadow clock
-/** Where the oculus' light spot lands on the floor at a given hour. */
-export function clockSpot(h: number) {
-  const d = sunDirAt(h);
-  const H = ROOF_Y + 0.009 - FLOOR_Y;
-  return new THREE.Vector3(OCULUS.x - (d.x * H) / d.y, FLOOR_Y, OCULUS.z - (d.z * H) / d.y);
-}
-
-export function ShadowClock() {
-  const brass = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c9a35a', metalness: 0.8, roughness: 0.35 }), []);
-  const spots = useMemo(() => CLOCK_HOURS.map(clockSpot), []);
-  const nums = useMemo(() => CLOCK_HOURS.map((h) => new THREE.MeshStandardMaterial({ map: hourTexture(h), transparent: true, metalness: 0.6, roughness: 0.4, depthWrite: false })), []);
-  const plaque = useMemo(() => new THREE.MeshStandardMaterial({ map: plaqueTexture('RELOJ DE LUZ', ['El sol entra por el óculo del techo', 'y marca la hora sobre la madera.'], 640, 200), roughness: 0.6 }), []);
-  const segs = useMemo(() => {
-    const out: { p: THREE.Vector3; len: number; rot: number }[] = [];
-    const first = clockSpot(CLOCK_HOURS[0] - 0.4), last = clockSpot(CLOCK_HOURS[CLOCK_HOURS.length - 1] + 0.4);
-    const pts = [first, ...spots, last];
-    for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
-      out.push({ p: a.clone().add(b).multiplyScalar(0.5), len: a.distanceTo(b), rot: Math.atan2(-(b.z - a.z), b.x - a.x) });
-    }
-    return out;
-  }, [spots]);
-  const noon = spots[CLOCK_HOURS.indexOf(12)];
-  return (
-    <group name="Reloj_de_luz">
-      {/* inlaid brass line following the spot's path */}
-      {segs.map((s, i) => (
-        <mesh key={'s' + i} position={[s.p.x, FLOOR_Y + 0.002, s.p.z]} rotation-y={s.rot} material={brass} receiveShadow>
-          <boxGeometry args={[s.len, 0.003, 0.012]} />
-        </mesh>
-      ))}
-      {spots.map((s, i) => (
-        <group key={i} position={[s.x, FLOOR_Y + 0.002, s.z]}>
-          <mesh material={brass} receiveShadow><boxGeometry args={[0.03, 0.003, 0.2]} /></mesh>
-          <mesh position={[0, 0.002, 0.2]} rotation-x={-Math.PI / 2} material={nums[i]} receiveShadow><planeGeometry args={[0.16, 0.16]} /></mesh>
-        </group>
-      ))}
-      <mesh position={[noon.x, FLOOR_Y + 0.003, noon.z - 0.3]} rotation-x={-Math.PI / 2} material={plaque} receiveShadow>
-        <planeGeometry args={[0.64, 0.2]} />
-      </mesh>
-    </group>
-  );
-}
-
-// ---------------------------------------------------------------- tactile relief model ("lo que se ve desde la torre")
-const MAP = { cx: 2.5, cz: -9, s: 0.0108 }; // world centre shown at the table centre; 1 m ≈ 1.1 cm (deck, tunnel, tower, lagoon)
+// ---------------------------------------------------------------- tactile relief model ("la laguna desde arriba")
+const MAP = { cx: 2.5, cz: -9, s: 0.0108 }; // world centre shown at the table centre; 1 m ≈ 1.1 cm (deck, tunnel, lagoon)
 
 function reliefGeometry(w: number, d: number) {
   const g = new THREE.PlaneGeometry(d, w, 70, 92);
@@ -162,19 +115,23 @@ export function TactileModel() {
     });
     im.instanceMatrix.needsUpdate = true;
   }, [trees]);
-  const plaque = useMemo(() => new THREE.MeshStandardMaterial({ map: plaqueTexture('LO QUE SE VE DESDE LA TORRE', ['Toca el relieve: el agua es lisa, la orilla', 'rugosa. Crema: el túnel. Lima: deck y torre.'], 640, 200), roughness: 0.6 }), []);
+  const plaque = useMemo(() => new THREE.MeshStandardMaterial({ map: plaqueTexture('LA LAGUNA DESDE ARRIBA', ['Toca el relieve: el agua es lisa, la orilla', 'rugosa. Crema: el túnel. Lima: el deck.'], 640, 200), roughness: 0.6 }), []);
   const act = useCallback(() => {
     enterFocus('maqueta');
-    useStore.getState().setInfo('Así se ve la laguna desde la torre. Toca el relieve: el agua es lisa y la orilla rugosa; el punto lima es este deck y el poste lima, la torre.');
+    const st = useStore.getState();
+    st.setInfo('Así se ve la laguna desde arriba. Toca el relieve: el agua es lisa y la orilla rugosa; el punto lima es este deck, y tú estás en él.');
+    if (!st.journey[5]) {
+      st.mark(5);
+      st.showToast('Desde arriba se ve lo que desde el suelo no: el agua, la orilla, los árboles, el túnel… y este deck, con todos alrededor de la mesa. Tú también haces parte de la red. En el borde sur está la placa «Tú».', 'Elevar la mirada', 'final', 11000);
+      sound.chime();
+    }
   }, [enterFocus]);
-  useInteractable('maqueta', 'Tocar la maqueta · vista desde la torre', ref, act, 2.8);
+  useInteractable('maqueta', 'Tocar la maqueta · la laguna desde arriba', ref, act, 2.8);
   const deckPos = [(0 - MAP.cx) * MAP.s, 0.03, (0 - MAP.cz) * MAP.s] as const;
-  const towerPos = [(TOWER.x - MAP.cx) * MAP.s, 0.05, (TOWER.z - MAP.cz) * MAP.s] as const;
   return (
     <group name="Maqueta_tactil" ref={ref} position={[MAQUETA.x, FLOOR_Y, MAQUETA.z]}>
-      {/* table: 0.8 m top, 0.7 m knee clearance for a wheelchair on the visitor (west) side */}
+      {/* table: 0.8 m top, open underneath (0.7 m knee clearance) so it can be used seated from every side */}
       <T s={[MAQUETA.d, 0.06, MAQUETA.w]} p={[0, MAQUETA.top - 0.03, 0]} m={edge} />
-      <T s={[0.06, 0.1, MAQUETA.w - 0.1]} p={[MAQUETA.d / 2 - 0.03, MAQUETA.top - 0.11, 0]} m={MAT.woodDark} />
       {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([sx, sz]) => (
         <T key={`${sx}${sz}`} s={[0.06, MAQUETA.top - 0.06, 0.06]} p={[sx * (MAQUETA.d / 2 - 0.05), (MAQUETA.top - 0.06) / 2, sz * (MAQUETA.w / 2 - 0.05)]} m={MAT.woodDark} />
       ))}
@@ -185,19 +142,18 @@ export function TactileModel() {
           <meshStandardMaterial color="#3f5f2a" roughness={0.9} />
         </instancedMesh>
         <mesh position={deckPos as unknown as THREE.Vector3Tuple} material={limeMark}><boxGeometry args={[0.1, 0.012, 0.075]} /></mesh>
-        {/* guadua tunnel in relief: a raised cream band from the path to the tower */}
+        {/* guadua tunnel in relief: a raised cream band from the road to the deck */}
         {TUNNEL_SAMPLES.filter((_, i) => i % 3 === 0).map((q, i) => {
           const lx = (q.x - MAP.cx) * MAP.s, lz = (q.z - MAP.cz) * MAP.s;
           if (Math.abs(lx) > D / 2 - 0.01 || Math.abs(lz) > W / 2 - 0.01) return null;
           return <mesh key={i} position={[lx, 0.022, lz]} material={tunnelMark}><boxGeometry args={[0.032, 0.012, 0.032]} /></mesh>;
         })}
-        <mesh position={towerPos as unknown as THREE.Vector3Tuple} material={limeMark}><cylinderGeometry args={[0.012, 0.016, 0.1, 10]} /></mesh>
       </group>
-      {/* upright plaque on the far (east) edge, facing the visitor */}
-      <mesh position={[MAQUETA.d / 2 + 0.01, MAQUETA.top + 0.13, 0]} rotation-y={-Math.PI / 2} material={plaque}>
-        <planeGeometry args={[0.64, 0.2]} />
-      </mesh>
-      <mesh position={[MAQUETA.d / 2 + 0.025, MAQUETA.top + 0.1, 0]} material={MAT.forest}><boxGeometry args={[0.02, 0.26, 0.68]} /></mesh>
+      {/* low plaque sloping out from the south edge (toward the arrival), below the relief so it hides nothing */}
+      <group position={[-0.25, MAQUETA.top - 0.07, MAQUETA.w / 2 + 0.04]} rotation-x={-0.55}>
+        <mesh position={[0, 0, -0.006]} material={MAT.forest}><boxGeometry args={[0.68, 0.22, 0.01]} /></mesh>
+        <mesh material={plaque}><planeGeometry args={[0.64, 0.2]} /></mesh>
+      </group>
     </group>
   );
 }
@@ -236,44 +192,3 @@ export function Binoculars() {
   );
 }
 
-// ---------------------------------------------------------------- canopy mirror ("Elevar la mirada")
-// A table-height mirror under the perforated ceiling: look down and you see the canopy, and yourself inside it.
-export function CanopyMirror() {
-  const ref = useRef<THREE.Group>(null);
-  const enterFocus = useStore((s) => s.enterFocus);
-  const frame = useMemo(() => { const m = MAT.woodWarm.clone(); m.emissive = new THREE.Color(0); return m; }, []);
-  useFrame(() => {
-    const h = useStore.getState().hovered === 'espejo';
-    frame.emissive.copy(LIME); frame.emissiveIntensity = h ? 0.11 + Math.sin(env.elapsed * 5) * 0.05 : 0;
-  });
-  const plaque = useMemo(() => new THREE.MeshStandardMaterial({ map: plaqueTexture('ESPEJO DEL DOSEL', ['Para elevar la mirada no hace falta', 'levantar la cabeza. ¿Te ves dentro del bosque?'], 640, 200), roughness: 0.6 }), []);
-  const act = useCallback(() => {
-    enterFocus('espejo');
-    const st = useStore.getState();
-    st.setInfo('En el espejo aparece el techo: hojas y aves recortadas contra el cielo, y tu reflejo entre ellas.');
-    if (!st.journey[5]) {
-      st.mark(5);
-      st.showToast('Sobre ti, un dosel de hojas y aves. Al cambiar de perspectiva aparecen las relaciones que sostienen la vida: el agua, las plantas, los animales… y tú. En el borde del espejo está la placa «Tú».', 'Elevar la mirada', 'final', 11000);
-      sound.chime();
-    }
-  }, [enterFocus]);
-  useInteractable('espejo', 'Asomarse al espejo del dosel', ref, act, 2.6);
-  const { w, d, top } = MIRROR;
-  return (
-    <group name="Espejo_del_dosel" ref={ref} position={[MIRROR.x, FLOOR_Y, MIRROR.z]}>
-      {/* timber table with knee clearance on all sides (0.7 m) */}
-      <T s={[w, 0.06, d]} p={[0, top - 0.03, 0]} m={frame} />
-      {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([sx, sz]) => (
-        <T key={`${sx}${sz}`} s={[0.06, top - 0.06, 0.06]} p={[sx * (w / 2 - 0.05), (top - 0.06) / 2, sz * (d / 2 - 0.05)]} m={MAT.woodDark} />
-      ))}
-      <mesh position={[0, top + 0.001, 0]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[w - 0.1, d - 0.1]} />
-        <MeshReflectorMaterial mirror={1} resolution={512} mixBlur={0} mixStrength={1.2} blur={[0, 0]} color="#c9d6d0" metalness={0.2} roughness={0.05} />
-      </mesh>
-      {/* plaque on the south edge, tilted up toward the reader */}
-      <group position={[0, top - 0.06, d / 2 + 0.03]} rotation-x={-0.5}>
-        <mesh position={[-0.2, 0, 0]} material={plaque}><planeGeometry args={[0.45, 0.14]} /></mesh>
-      </group>
-    </group>
-  );
-}

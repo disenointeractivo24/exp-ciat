@@ -1,6 +1,5 @@
 // Guadua tunnel: route, cross-section and what happens along it. Pure data (no terrain import, to avoid cycles).
 import * as THREE from 'three';
-import { TOWER } from './layout';
 
 export const TUNNEL_W = 3.0; // clear width (m) — square section
 export const TUNNEL_H = 3.0; // clear height (m)
@@ -10,7 +9,7 @@ export const BAY = 1.6; // frame spacing (m)
 // turns east and opens gradually into the low stepped zone that climbs the mound to the deck.
 // entrance next to the south road (user's pink mark), straight along the lagoon's west side, then the turn to the deck
 const CTRL: [number, number][] = [
-  [-20.6, -61.6], [-20.8, -51], [-21.1, -40], [-21.3, -28], [-21.3, -16], [-21.1, -5], [-20.9, 2.5], [-20.2, 6.4], [-17.8, 8.6], [-14.5, 9.0],
+  [-20.6, -61.6], [-20.8, -51], [-21.1, -40], [-21.3, -28], [-21.3, -16], [-21.1, -5], [-20.9, 2.5], [-20.2, 6.2], [-17.8, 8.0], [-14.5, 8.22],
 ];
 export const tunnelCurve = new THREE.CatmullRomCurve3(CTRL.map(([x, z]) => new THREE.Vector3(x, 0, z)), false, 'centripetal');
 export const TUNNEL_LEN = tunnelCurve.getLength();
@@ -47,8 +46,8 @@ const sstep = (a: number, b: number, x: number) => { const t = Math.min(1, Math.
 /** 0 inside the tunnel → 1 where it has fully opened, arriving at the deck. */
 export const OPEN_FROM = TUNNEL_LEN - 13;
 export const openness = (s: number) => sstep(OPEN_FROM, TUNNEL_LEN, s);
-/** The section flares as it opens. */
-export const widthAt = (s: number) => TUNNEL_W + 2.6 * openness(s) ** 2;
+/** Same width all the way: the trail stays narrow as it opens and leads straight into the steps and the deck ramp. */
+export const widthAt = (_s: number) => TUNNEL_W;
 
 
 // Cow stable west of the north stretch, paddock between it and the tunnel, crop fields beyond.
@@ -62,8 +61,9 @@ export function fenceDist(x: number, z: number) {
   if (inside) return Math.min(x - PADDOCK.x0, PADDOCK.x1 - x, z - PADDOCK.z0, PADDOCK.z1 - z);
   return Math.hypot(Math.max(PADDOCK.x0 - x, 0, x - PADDOCK.x1), Math.max(PADDOCK.z0 - z, 0, z - PADDOCK.z1));
 }
-/** Low stepped zone (gradas bajas) from the tunnel exit up the mound to the deck ramp and the boardwalk. */
-export const STEPS = { x0: -14.5, x1: -2.5, z0: 6.4, z1: 11.6, n: 7 };
+/** Low stepped zone (gradas bajas): as wide as the trail, from the tunnel exit up the mound (treads from x0 to xt),
+ *  then a flat landing (xt to x1) right at the foot of the deck ramp, which comes down onto its north edge (z0). */
+export const STEPS = { x0: -14.5, xt: -2.5, x1: -0.6, z0: 6.84, z1: 9.6, n: 7 };
 export const FIELDS = { x0: -55, x1: -43, z0: -20, z1: -10 };
 
 export const NBAYS = Math.floor(TUNNEL_LEN / BAY);
@@ -93,4 +93,3 @@ export function bayKind(i: number, side: 1 | -1): BayKind {
 /** Roof: perforated flora panel on alternate bays, bamboo purlins only on the others. */
 export const roofPanel = (i: number) => i % 2 === 0 && (i + 0.5) * BAY < OPEN_FROM;
 
-export { TOWER };

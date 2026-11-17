@@ -1,82 +1,35 @@
 // Official signage pieces that did not replace an existing sign: wayfinding boards (Túnel, Laguna, Regreso),
-// place icons on posts, and the extruded cut-outs (garza «Regreso», pato «Laguna», and the bird silhouettes that
-// the tunnel roof casts as shadows — «¿Quién proyecta esta silueta?»).
+// place icons on posts, the animal cut-outs that point the way (focha «Túnel», vaca «Establo», pato «Laguna»,
+// urutau «Deck», garza «Regreso»), and the bird silhouettes that the tunnel roof casts as shadows.
 import { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { heightAt } from '../lib/terrain';
 import { OPEN_FROM, PADDOCK, TUNNEL_H, frameAt, widthAt } from '../lib/tunnel';
 import { WATER_Y } from '../lib/layout';
 import { ASPECT, SIGNAGE, signTex } from '../lib/signage';
 import { MAT } from './materials';
 import { T } from './Deck';
+import { Culms, culm } from './Guadua';
 
-// ---------------------------------------------------------------- SVG → extruded cut-out (+ printed face)
-interface SvgData { shapes: { shape: THREE.Shape; color: THREE.Color }[]; w: number; h: number; face: THREE.Texture | null }
-const svgCache = new Map<string, Promise<SvgData>>();
-function loadSvg(url: string, withFace: boolean): Promise<SvgData> {
-  const key = url + withFace;
-  let p = svgCache.get(key);
-  if (!p) {
-    p = fetch(url).then((r) => r.text()).then(async (text) => {
-      const data = new SVGLoader().parse(text);
-      const vb = (/viewBox="([^"]+)"/.exec(text)?.[1] ?? '0 0 100 100').split(/\s+/).map(Number);
-      const shapes: SvgData['shapes'] = [];
-      for (const path of data.paths) {
-        const c = path.color;
-        if (c.r > 0.97 && c.g > 0.97 && c.b > 0.97) continue; // white inner graphics go on the printed face
-        for (const s of SVGLoader.createShapes(path)) shapes.push({ shape: s, color: c.clone() });
-      }
-      let face: THREE.Texture | null = null;
-      if (withFace) {
-        // print the artwork on the front face; the fabrication font (Sora) is replaced by a common sans-serif
-        const svg = text.replace(/font-family:[^;]+;/g, 'font-family: Arial, Helvetica, sans-serif;');
-        const img = new Image();
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-        await img.decode();
-        const k = 2048 / Math.max(vb[2], vb[3]);
-        const cv = document.createElement('canvas');
-        cv.width = Math.round(vb[2] * k); cv.height = Math.round(vb[3] * k);
-        cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
-        face = new THREE.CanvasTexture(cv);
-        face.colorSpace = THREE.SRGBColorSpace; face.anisotropy = 8;
-      }
-      return { shapes, w: vb[2], h: vb[3], face };
-    });
-    svgCache.set(key, p);
-  }
-  return p;
-}
-function useSvg(url: string, withFace: boolean) {
-  const [d, setD] = useState<SvgData | null>(null);
-  useEffect(() => { let on = true; loadSvg(url, withFace).then((v) => on && setD(v)); return () => { on = false; }; }, [url, withFace]);
-  return d;
-}
-
-/** Upright cut-out: base at y = 0, centred on x, front face toward +z. `height` in metres. */
-function SvgCutout({ url, height, depth = 0.05, face = false, color }: { url: string; height: number; depth?: number; face?: boolean; color?: string }) {
-  const d = useSvg(url, face);
-  const built = useMemo(() => {
-    if (!d) return null;
-    const s = height / d.h;
-    const groups = new Map<string, THREE.Shape[]>();
-    for (const { shape, color: c } of d.shapes) { const k = color ?? '#' + c.getHexString(); if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(shape); }
-    const meshes = [...groups].map(([col, shapes]) => {
-      const g = new THREE.ExtrudeGeometry(shapes, { depth, bevelEnabled: false, curveSegments: 10 });
-      // SVG y runs down: flip, scale to metres, base on the ground, centred
-      g.applyMatrix4(new THREE.Matrix4().makeScale(s, -s, 1));
-      g.translate(-(d.w * s) / 2, height, -depth / 2);
-      g.computeVertexNormals();
-      return { g, m: new THREE.MeshStandardMaterial({ color: col, roughness: 0.55, metalness: 0.1, side: THREE.DoubleSide }) };
-    });
-    const faceMat = d.face ? new THREE.MeshStandardMaterial({ map: d.face, transparent: true, alphaTest: 0.4, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }) : null;
-    return { meshes, faceMat, w: d.w * s };
-  }, [d, height, depth, color]);
-  if (!built) return null;
+// ---------------------------------------------------------------- animal cut-outs (wayfinding)
+type AnimalKey = keyof typeof SIGNAGE.animales;
+/** Laser-cut board in the animal's outline, printed on the front, plain dark on the back, on a guadua post. */
+function AnimalCutout({ k, height, pos, yaw, y, lift = 0.3, post = true }: { k: AnimalKey; height: number; pos: [number, number]; yaw: number; y?: number; lift?: number; post?: boolean }) {
+  const a = SIGNAGE.animales[k];
+  const mats = useMemo(() => {
+    const t = signTex(a.url);
+    return {
+      front: new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, roughness: 0.55 }),
+      back: new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, roughness: 0.65, color: '#33463a', side: THREE.BackSide }),
+    };
+  }, [a.url]);
+  const w = height * a.aspect, gy = y ?? heightAt(pos[0], pos[1]);
+  const posts = useMemo(() => [culm([0, 0, -0.05], [0, lift + height * 0.7, -0.05], 0.04)], [lift, height]);
   return (
-    <group>
-      {built.meshes.map(({ g, m }, i) => <mesh key={i} geometry={g} material={m} castShadow receiveShadow />)}
-      {built.faceMat && <mesh position={[0, height / 2, depth / 2 + 0.002]} material={built.faceMat}><planeGeometry args={[built.w, height]} /></mesh>}
+    <group position={[pos[0], gy, pos[1]]} rotation-y={yaw}>
+      {post && <Culms culms={posts} name={'Senal_' + k + '_poste'} />}
+      <mesh position={[0, lift + height / 2, 0.006]} material={mats.front} castShadow><planeGeometry args={[w, height]} /></mesh>
+      <mesh position={[0, lift + height / 2, -0.006]} material={mats.back}><planeGeometry args={[w, height]} /></mesh>
     </group>
   );
 }
@@ -119,8 +72,8 @@ export function RoofSilhouette({ k, pos, yaw }: { k: number; pos: THREE.Vector3;
 // ---------------------------------------------------------------- boards and posts
 function PostBoard({ url, aspect, width, y, pos, yaw, back }: { url: string; aspect: number; width: number; y: number; pos: [number, number]; yaw: number; back?: string }) {
   const mats = useMemo(() => {
-    const f = new THREE.MeshStandardMaterial({ map: signTex(url), roughness: 0.6 });
-    const b = back ? new THREE.MeshStandardMaterial({ map: signTex(back), roughness: 0.6 }) : MAT.forest;
+    const f = new THREE.MeshStandardMaterial({ map: signTex(url), roughness: 0.6, alphaTest: 0.5 });
+    const b = back ? new THREE.MeshStandardMaterial({ map: signTex(back), roughness: 0.6, alphaTest: 0.5 }) : MAT.forest;
     return [MAT.forest, MAT.forest, MAT.forest, MAT.forest, f, b];
   }, [url, back]);
   const h = width / aspect, gy = heightAt(pos[0], pos[1]);
@@ -134,7 +87,7 @@ function PostBoard({ url, aspect, width, y, pos, yaw, back }: { url: string; asp
 
 /** Square place icon(s) on a single post, printed on both faces. */
 function IconPost({ urls, pos, yaw, gy }: { urls: string[]; pos: [number, number]; yaw: number; gy?: number }) {
-  const mats = useMemo(() => urls.map((u) => { const m = new THREE.MeshStandardMaterial({ map: signTex(u), roughness: 0.6 }); return [MAT.forest, MAT.forest, MAT.forest, MAT.forest, m, m]; }), [urls]);
+  const mats = useMemo(() => urls.map((u) => { const m = new THREE.MeshStandardMaterial({ map: signTex(u), roughness: 0.6, alphaTest: 0.5 }); return [MAT.forest, MAT.forest, MAT.forest, MAT.forest, m, m]; }), [urls]);
   const S = 0.42, top = 1.55;
   const y0 = gy ?? heightAt(pos[0], pos[1]);
   return (
@@ -158,9 +111,10 @@ export function SignageExtras() {
     // where the tunnel opens onto the lagoon: «Laguna» board on the lagoon (left) side, facing the walker
     const s = OPEN_FROM - 3, f1 = frameAt(s);
     const lag = f1.p.clone().addScaledVector(f1.r, -(widthAt(s) / 2 + 0.7));
-    return { header, headerYaw: yawFacing(out.x, out.z), iconAt, lag, lagYaw: yawFacing(-f1.t.x, -f1.t.z) };
+    const fulicaAt = f0.p.clone().addScaledVector(f0.r, w0 / 2 + 1.5).addScaledVector(f0.t, -0.8); // beside the portal, past the icon post
+    return { header, headerYaw: yawFacing(out.x, out.z), iconAt, fulicaAt, lag, lagYaw: yawFacing(-f1.t.x, -f1.t.z) };
   }, []);
-  const headerMat = useMemo(() => [MAT.forest, MAT.forest, MAT.forest, MAT.forest, new THREE.MeshStandardMaterial({ map: signTex(SIGNAGE.hTunel), roughness: 0.6 }), MAT.forest], []);
+  const headerMat = useMemo(() => [MAT.forest, MAT.forest, MAT.forest, MAT.forest, new THREE.MeshStandardMaterial({ map: signTex(SIGNAGE.hTunel), roughness: 0.6, alphaTest: 0.5 }), MAT.forest], []);
   const HW = 1.5, HH = HW / ASPECT.horizontal;
   return (
     <group name="Senaletica">
@@ -170,17 +124,23 @@ export function SignageExtras() {
         {[-1, 1].map((sx) => <T key={sx} s={[0.06, 0.6, 0.06]} p={[sx * 0.55, -HH / 2 - 0.15, -0.04]} m={MAT.woodWarm} />)}
       </group>
       <IconPost urls={[SIGNAGE.iconos.tunel]} pos={[tunnel.iconAt.x, tunnel.iconAt.z]} yaw={tunnel.headerYaw} />
+      {/* focha «Túnel filtros de luz ↑» at the entrance, facing the road */}
+      <AnimalCutout k="fulica" height={1.0} pos={[tunnel.fulicaAt.x, tunnel.fulicaAt.z]} yaw={tunnel.headerYaw} />
       {/* stable: icon on the paddock corner next to the entrance, facing the road */}
       <IconPost urls={[SIGNAGE.iconos.establo]} pos={[PADDOCK.x1 - 0.8, PADDOCK.z0 - 0.6]} yaw={Math.PI} />
+      <AnimalCutout k="vaca" height={0.95} pos={[PADDOCK.x1 - 3.2, PADDOCK.z0 - 0.7]} yaw={Math.PI} lift={0.2} />
       {/* lagoon: board where the tunnel opens, the duck «Laguna» cut-out floating in front of the deck, icon post */}
       <PostBoard url={SIGNAGE.hLaguna} aspect={ASPECT.horizontal} width={0.9} y={1.25} pos={[tunnel.lag.x, tunnel.lag.z]} yaw={tunnel.lagYaw} />
-      <group position={[1.8, WATER_Y - 0.08, -11]} rotation-y={-0.1}><SvgCutout url={SIGNAGE.svg.pato} height={1.1} depth={0.1} face /></group>
+      <AnimalCutout k="pato" height={0.6} pos={[1.8, -11]} y={WATER_Y - 0.12} lift={0} post={false} yaw={-0.1} />
       <IconPost urls={[SIGNAGE.iconos.laguna]} pos={[-10.4, -3.2]} yaw={0.4} />
-      {/* deck / tower junction at the end of the stepped zone */}
-      <IconPost urls={[SIGNAGE.iconos.deck, SIGNAGE.iconos.torre]} pos={[-2.25, 12.15]} yaw={-Math.PI / 2} />
-      {/* «Regreso»: heron cut-out at the deck / tower junction, facing the way back along the steps, and the board at the foot of the tower ramp */}
-      <group position={[-3.7, heightAt(-3.7, 12.9), 12.9]} rotation-y={Math.PI / 2}><SvgCutout url={SIGNAGE.svg.garza} height={1.9} depth={0.07} face /></group>
-      <PostBoard url={SIGNAGE.hRegreso} aspect={ASPECT.horizontal} width={0.9} y={1.25} pos={[2.1, 10.2]} yaw={0} />
+      {/* urutau «Deck ↗» where the steps start climbing, facing whoever comes out of the tunnel */}
+      <AnimalCutout k="urutau" height={1.25} pos={[-13.6, 10.25]} yaw={-Math.PI / 2} />
+      {/* deck junction at the end of the stepped zone */}
+      <IconPost urls={[SIGNAGE.iconos.deck]} pos={[-3.0, 10.05]} yaw={-Math.PI / 2} />
+      {/* «Regreso ←»: heron cut-out beside the steps, parallel to them, so its arrow points west, back toward the tunnel;
+          and the board on the landing at the foot of the deck ramp */}
+      <AnimalCutout k="garza" height={1.5} pos={[-5.6, 6.3]} yaw={0} lift={0.15} />
+      <PostBoard url={SIGNAGE.hRegreso} aspect={ASPECT.horizontal} width={0.9} y={1.25} pos={[-1.55, 10.05]} yaw={0} />
     </group>
   );
 }

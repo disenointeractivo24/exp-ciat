@@ -1,4 +1,4 @@
-// Guadua tunnel from the deck to the observation tower: square section, lattice walls and roof that cast
+// Guadua tunnel from the road to the deck: square section, lattice walls and roof that cast
 // shadows of CIAT flora, windows at three heights, rotating 3-face prisms, and an end that opens onto the lagoon.
 import { useCallback, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -21,50 +21,15 @@ import { sound } from '../lib/audio';
 import { env, useStore } from '../store';
 import { MAT } from './materials';
 import { T } from './Deck';
+import { BirdSculpture } from './BirdSculpture';
+import { PhotoFrames, type FrameSpot } from './PhotoFrames';
 
 const LIME = new THREE.Color(PALETTE.lime);
 const UP = new THREE.Vector3(0, 1, 0);
 const floorY = (x: number, z: number) => heightAt(x, z) + 0.05;
 
-// ---------------------------------------------------------------- instanced bamboo culms
-export type Culm = { a: THREE.Vector3; b: THREE.Vector3; r: number };
-
-function CulmBatch({ L, list, geo }: { L: number; list: Culm[]; geo: THREE.BufferGeometry }) {
-  const mat = useMemo(() => {
-    const t = bambooTexture().clone();
-    t.needsUpdate = true;
-    t.repeat.set(1, L);
-    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.55 });
-  }, [L]);
-  const ref = useCallback((im: THREE.InstancedMesh | null) => {
-    if (!im) return;
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), d = new THREE.Vector3(), mid = new THREE.Vector3(), sc = new THREE.Vector3();
-    list.forEach((c, i) => {
-      d.subVectors(c.b, c.a);
-      const len = d.length();
-      q.setFromUnitVectors(UP, d.normalize());
-      m.compose(mid.addVectors(c.a, c.b).multiplyScalar(0.5), q, sc.set(c.r, len, c.r));
-      im.setMatrixAt(i, m);
-    });
-    im.instanceMatrix.needsUpdate = true;
-    im.computeBoundingSphere();
-  }, [list]);
-  return <instancedMesh ref={ref} args={[geo, mat, list.length]} castShadow receiveShadow />;
-}
-
-export function Culms({ culms, name }: { culms: Culm[]; name: string }) {
-  const geo = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, 10, 1), []);
-  const groups = useMemo(() => {
-    const by = new Map<number, Culm[]>();
-    for (const c of culms) {
-      const L = Math.max(0.25, Math.round(c.a.distanceTo(c.b) * 4) / 4);
-      if (!by.has(L)) by.set(L, []);
-      by.get(L)!.push(c);
-    }
-    return [...by.entries()];
-  }, [culms]);
-  return <group name={name}>{groups.map(([L, list]) => <CulmBatch key={L} L={L} list={list} geo={geo} />)}</group>;
-}
+export { Culms, type Culm } from './Guadua';
+import { Culms, type Culm } from './Guadua';
 
 // ---------------------------------------------------------------- lattice panels (shared geometry variants)
 const PW = BAY - 0.14, PH = 2.5, P_BOTTOM = 0.3; // wall panel size, bottom above floor
@@ -150,14 +115,22 @@ function Prism({ idx, pos, faceYaw }: { idx: number; pos: THREE.Vector3; faceYaw
                   {[-1, 1].map((sx) => <mesh key={'v' + sx} position={[sx * (PRISM_A / 2 - 0.05), 0, 0]} material={MAT.forest}><boxGeometry args={[0.06, PRISM_HGT - 0.04, 0.012]} /></mesh>)}
                 </group>
               )}
-              {/* vertical timber edge at the corner between faces */}
-              <mesh position={[PRISM_A / 2, 0, ap]} rotation-y={0} material={edge} castShadow><boxGeometry args={[0.035, PRISM_HGT, 0.035]} /></mesh>
+              {/* rounded corner: a round timber rod covers the edge between faces, so no sharp corner sticks out */}
+              <mesh position={[PRISM_A / 2, 0, ap]} material={edge} castShadow><cylinderGeometry args={[0.032, 0.032, PRISM_HGT, 16]} /></mesh>
             </group>
           );
         })}
+        {/* the bird it talks about, carved in timber, seen through the empty frame (face C); nudged toward that face,
+            where the triangle is widest, so it never touches the cards */}
+        <group rotation-y={(4 * Math.PI) / 3}>
+          <group position={[0, -PRISM_HGT / 2, 0.085]}>
+            <BirdSculpture url={[SIGNAGE.svg.siluetaUrutau, SIGNAGE.svg.siluetaGarza][idx]} maxW={0.42} maxH={PRISM_HGT - 0.22} />
+          </group>
+        </group>
+        {/* round caps (not triangles): they reach just past the rounded corners, so nothing pointed sticks out at any height */}
         {[-1, 1].map((sy) => (
           <mesh key={sy} position={[0, sy * (PRISM_HGT / 2 + 0.015), 0]} material={edge} castShadow>
-            <cylinderGeometry args={[ap * 2 + 0.02, ap * 2 + 0.02, 0.03, 3]} />
+            <cylinderGeometry args={[ap * 2 + 0.045, ap * 2 + 0.045, 0.03, 40]} />
           </mesh>
         ))}
       </group>
@@ -221,8 +194,8 @@ export function SteppedZone() {
     const planks: THREE.Matrix4[] = [], risers: THREE.Matrix4[] = [];
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
     const zm = (STEPS.z0 + STEPS.z1) / 2, D = STEPS.z1 - STEPS.z0;
-    const hw = heightAt(STEPS.x0 + 0.05, zm) + 0.05, he = heightAt(STEPS.x1 - 0.05, zm) + 0.05;
-    const tread = (STEPS.x1 - STEPS.x0) / STEPS.n;
+    const hw = heightAt(STEPS.x0 + 0.05, zm) + 0.05, he = heightAt(STEPS.xt + 0.5, zm) + 0.05;
+    const tread = (STEPS.xt - STEPS.x0) / STEPS.n;
     q.setFromAxisAngle(UP, Math.PI / 2); // plank X → along z (across the climb)
     for (let k = 0; k < STEPS.n; k++) {
       const x0 = STEPS.x0 + k * tread;
@@ -231,6 +204,9 @@ export function SteppedZone() {
       const g = Math.min(heightAt(x0, STEPS.z0), heightAt(x0, STEPS.z1)) - 0.1;
       risers.push(m.compose(new THREE.Vector3(x0 + 0.03, (y + g) / 2, zm), new THREE.Quaternion(), sc.set(0.06, y - g, D)).clone());
     }
+    // flat landing at the foot of the deck ramp, level with the last tread
+    const yl = he + 0.02;
+    for (let x = STEPS.xt + PLANK_W / 2 + 0.02; x < STEPS.x1 - 0.02; x += PLANK_W + PLANK_GAP) planks.push(m.compose(new THREE.Vector3(x, yl - PLANK_T / 2, zm), q, sc.set(D, 1, 1)).clone());
     return { planks, risers };
   }, []);
   const mat = usePlankMaterial();
@@ -243,25 +219,39 @@ export function SteppedZone() {
   );
 }
 
-// ---------------------------------------------------------------- lanterns (night)
-function Lanterns({ spots }: { spots: THREE.Vector3[] }) {
-  const glow = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f1e3c4', emissive: '#ffcf8a', emissiveIntensity: 0, roughness: 0.6, transparent: true, opacity: 0.95 }), []);
+// ---------------------------------------------------------------- light inside the guadua (night)
+// Warm LED strips run inside a slot along the underside of the 0.9 m handrail culms; a few low point lights
+// give the planks their glow. Nothing hangs from the roof and the light stays below the handrail, off the lagoon.
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
+function CulmLights({ spots, strips, canutos }: { spots: THREE.Vector3[]; strips: { a: THREE.Vector3; b: THREE.Vector3 }[]; canutos: THREE.Vector3[] }) {
+  // lit canutos: a short section of the post culm, between two nodes, with a warm light inside
+  const canutoMats = useMemo(() => canutos.map((p) => new THREE.Matrix4().makeTranslation(p.x, p.y, p.z)), [canutos]);
+  const canutoGeo = useMemo(() => new THREE.CylinderGeometry(0.053, 0.053, 0.24, 14), []);
+  const nodeGeo = useMemo(() => new THREE.CylinderGeometry(0.058, 0.058, 0.025, 14), []);
+  const nodeMats = useMemo(() => canutos.flatMap((p) => [-0.125, 0.125].map((dy) => new THREE.Matrix4().makeTranslation(p.x, p.y + dy, p.z))), [canutos]);
+  const glow = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c9ae6c', emissive: '#ffc27a', emissiveIntensity: 0, roughness: 0.6 }), []);
+  const box = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
+  const mats = useMemo(() => {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), d = new THREE.Vector3(), mid = new THREE.Vector3(), sc = new THREE.Vector3();
+    return strips.map(({ a, b }) => {
+      d.subVectors(b, a);
+      const len = d.length();
+      q.setFromUnitVectors(Z_AXIS, d.normalize());
+      return m.compose(mid.addVectors(a, b).multiplyScalar(0.5), q, sc.set(0.014, 0.008, Math.max(0.01, len - 0.12))).clone();
+    });
+  }, [strips]);
   const lights = useRef<(THREE.PointLight | null)[]>([]);
   useFrame(() => {
     const m = env.nightMix;
-    glow.emissiveIntensity = 0.15 + m * 2.2;
-    lights.current.forEach((l) => { if (l) l.intensity = m * 1.6; });
+    glow.emissiveIntensity = m * 3.2;
+    lights.current.forEach((l) => { if (l) l.intensity = m * 0.9; });
   });
   return (
-    <group name="Tunel_faroles">
-      {spots.map((p, i) => (
-        <group key={i} position={p}>
-          <mesh position={[0, 0.32, 0]} material={MAT.steel}><cylinderGeometry args={[0.006, 0.006, 0.3, 6]} /></mesh>
-          <mesh material={glow} castShadow={false}><cylinderGeometry args={[0.13, 0.11, 0.38, 12, 1]} /></mesh>
-          {[-1, 1].map((s) => <mesh key={s} position={[0, s * 0.2, 0]} material={MAT.woodDark}><cylinderGeometry args={[0.14, 0.14, 0.03, 12]} /></mesh>)}
-          {i % 2 === 0 && <pointLight ref={(el) => { lights.current[i / 2] = el; }} position={[0, -0.25, 0]} distance={5} decay={2} color="#ffc98a" intensity={0} />}
-        </group>
-      ))}
+    <group name="Tunel_luz_en_guadua">
+      <instancedMesh ref={useInstances(mats)} args={[box, glow, mats.length]} />
+      <instancedMesh ref={useInstances(canutoMats)} args={[canutoGeo, glow, canutoMats.length]} />
+      <instancedMesh ref={useInstances(nodeMats)} args={[nodeGeo, MAT.woodDark, nodeMats.length]} castShadow />
+      {spots.map((p, i) => <pointLight key={i} ref={(el) => { lights.current[i] = el; }} position={p} distance={4} decay={2} color="#ffc27a" intensity={0} />)}
     </group>
   );
 }
@@ -281,7 +271,10 @@ export function GuaduaTunnel() {
     const boards: { pos: THREE.Vector3; yaw: number }[] = [];
     const prisms: { idx: number; pos: THREE.Vector3; yaw: number }[] = [];
     const medal: { pos: THREE.Vector3; kind: 'lagoon' | 'stable' | 'prism' }[] = [];
-    const lanterns: THREE.Vector3[] = [];
+    const glowSpots: THREE.Vector3[] = [];
+    const strips: { a: THREE.Vector3; b: THREE.Vector3 }[] = [];
+    const frameSpots: FrameSpot[] = [];
+    const canutos: THREE.Vector3[] = [];
     const H = TUNNEL_H;
     const frames = Array.from({ length: NBAYS + 1 }, (_, i) => {
       const s = Math.min(TUNNEL_LEN, i * BAY);
@@ -293,9 +286,12 @@ export function GuaduaTunnel() {
     // frames: twin culm posts each side + twin beam + knee braces
     for (const fr of frames) {
       const top = Math.max(fr.L.y, fr.R.y) + H;
-      for (const base of [fr.L, fr.R]) for (const k of [-0.055, 0.055]) {
+      // where the tunnel has opened (no beams any more), the twin posts become handrail posts instead of
+      // free-standing 3 m poles: one culm per side, just above the 0.9 m handrail
+      const roofed = fr.o < 0.8;
+      for (const base of [fr.L, fr.R]) for (const k of roofed ? [-0.055, 0.055] : [0]) {
         const b = base.clone().addScaledVector(fr.f.t, k);
-        culms.push({ a: b.clone().setY(base.y - 0.05), b: b.clone().setY(top + 0.12), r: 0.05 });
+        culms.push({ a: b.clone().setY(base.y - 0.05), b: b.clone().setY(roofed ? top + 0.12 : base.y + 1.02), r: roofed ? 0.05 : 0.045 });
       }
       if (fr.o < 0.8) {
         for (const k of [-0.055, 0.055]) {
@@ -307,7 +303,16 @@ export function GuaduaTunnel() {
           culms.push({ a: base.clone().setY(top - 0.65), b: base.clone().addScaledVector(fr.f.r, 0.6 * dir).setY(top), r: 0.03 });
         }
       }
-      if (fr.o < 0.5 && Math.round(fr.s / BAY) % 3 === 1) lanterns.push(fr.c.clone().setY(top - 0.55));
+      // a lit internode (canuto) in the inner culm of the posts, every other frame, both sides
+      if (Math.round(fr.s / BAY) % 2 === 0 && fr.o < 0.95) {
+        for (const base of [fr.L, fr.R]) canutos.push(base.clone().addScaledVector(fr.f.t, 0.055).setY(base.y + 0.5));
+      }
+      // low warm light from the handrail every fifth frame, alternating sides (no fixtures hanging from the roof)
+      const fi = Math.round(fr.s / BAY);
+      if (fi % 5 === 2) {
+        const left = Math.floor(fi / 5) % 2 === 0, base = left ? fr.L : fr.R;
+        glowSpots.push(base.clone().addScaledVector(left ? fr.f.r : fr.f.r.clone().negate(), 0.2).setY(base.y + 0.82));
+      }
     }
     // bays
     for (let i = 0; i < NBAYS; i++) {
@@ -323,7 +328,10 @@ export function GuaduaTunnel() {
         const inward = (side < 0 ? A.f.r : A.f.r.clone().negate()).clone();
         // continuous handrail at 0.9 m (+ low kick rail): on every bay, for older visitors
         const rail = (h: number, r: number, inset = 0) => culms.push({ a: a.clone().addScaledVector(inward, inset).setY(a.y + h), b: b.clone().addScaledVector(inward, inset).setY(b.y + h), r });
-        rail(0.9, 0.035, kind === 'windows' || kind === 'info' ? 0.09 : 0);
+        const inset = kind === 'windows' || kind === 'info' ? 0.09 : 0;
+        rail(0.9, 0.035, inset);
+        // LED strip set into a slot cut along the lower inner face of the handrail culm, lighting the planks
+        strips.push({ a: a.clone().addScaledVector(inward, inset + 0.022).setY(a.y + 0.874), b: b.clone().addScaledVector(inward, inset + 0.022).setY(b.y + 0.874) });
         if (o < 0.95) rail(0.15, 0.03);
         if (kind === 'open' || kind === 'prism') {
           if (o < 0.55) rail(1.55, 0.03);
@@ -333,6 +341,13 @@ export function GuaduaTunnel() {
           const pos = mid.clone().setY(Math.min(a.y, b.y) + PC);
           const variant = kind === 'info' ? -1 : i % 3;
           panels.push({ pos, yaw, geo: variant < 0 ? lattice.info : lattice.windows[variant], mat: i % 3, side });
+          // windows onto the cows become photo frames
+          if (side !== LAGOON_SIDE) {
+            const rects = variant < 0
+              ? [{ x0: 0.2, x1: 0.62, y0: WIN.kid.y0, y1: WIN.kid.y1 }, { x0: 0.2, x1: 0.62, y0: WIN.standing.y0, y1: WIN.standing.y1 }]
+              : [WIN.kid, WIN.seated, WIN.standing];
+            rects.forEach((rect, li) => frameSpots.push({ pos, yaw, rect, layer: li }));
+          }
           const floorPt = mid.clone().addScaledVector(inward, 0.7);
           medal.push({ pos: floorPt.setY(floorY(floorPt.x, floorPt.z) + 0.004), kind: side === LAGOON_SIDE ? 'lagoon' : 'stable' });
           if (kind === 'info') {
@@ -349,7 +364,8 @@ export function GuaduaTunnel() {
         }
       }
       // roof: purlins along the bay (fewer as the tunnel opens) + perforated flora panel on alternate bays
-      const n = Math.round(9 * (1 - o));
+      // only between two frames that still carry a beam, so no purlin ends in mid-air
+      const n = A.o < 0.8 && B.o < 0.8 ? Math.round(9 * (1 - o)) : 0;
       for (let k = 0; k < n; k++) {
         const u = -1 + (2 * (k + 0.5)) / Math.max(1, n);
         const pa = A.c.clone().addScaledVector(A.f.r, (u * A.w) / 2).setY(top + 0.08);
@@ -367,7 +383,7 @@ export function GuaduaTunnel() {
         roofs.push({ pos: mid, yaw: Math.atan2(-ch.z, ch.x), geo: lattice.roof[i % 3], mat: (i / 2) % 3 });
       }
     }
-    return { culms, panels, roofs, birdRoofs, boards, prisms, medal, lanterns };
+    return { culms, panels, roofs, birdRoofs, boards, prisms, medal, glowSpots, strips, frameSpots, canutos };
   }, [lattice]);
 
   // zone messages as the visitor walks through
@@ -417,7 +433,8 @@ export function GuaduaTunnel() {
         ))}
       </group>
       {data.prisms.map((p, i) => <Prism key={i} idx={p.idx} pos={p.pos} faceYaw={p.yaw} />)}
-      <Lanterns spots={data.lanterns} />
+      <CulmLights spots={data.glowSpots} strips={data.strips} canutos={data.canutos} />
+      <PhotoFrames spots={data.frameSpots} />
       {data.birdRoofs.map((b, i) => <RoofSilhouette key={'bird' + i} k={b.k} pos={b.pos} yaw={b.yaw} />)}
       <TunnelSign />
       <SteppedZone />

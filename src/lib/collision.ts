@@ -1,9 +1,6 @@
-import { BENCHES, BINOC, DECK, EDGE_X, FLOOR_Y, MAQUETA, MIRROR, RAILINGS, RAMP, SELECTOR, SIGN, SLATS, STRUCT_POSTS, WALL, WATER_Y, WHEEL, SLIDERS } from './layout';
+import { BENCHES, BINOC, DECK, EDGE_X, FLOOR_Y, MAQUETA, RAILINGS, RAMP, SELECTOR, SIGN, SLATS, STRUCT_POSTS, WALL, WATER_Y, WHEEL, SLIDERS } from './layout';
 import { heightAt } from './terrain';
 import { TREES } from './vegData';
-import { towerBoxes, towerSurfaces } from './tower';
-
-const yboxes = towerBoxes();
 import { BAY, NBAYS, PADDOCK, PRISM_BAYS, TUNNEL_LEN, frameAt, openness, widthAt } from './tunnel';
 
 interface Box { cx: number; cz: number; hx: number; hz: number; c: number; s: number }
@@ -32,14 +29,13 @@ addBox(WHEEL.x, WHEEL.z, WHEEL.width / 2, 0.2, -WHEEL.rot);
 circles.push({ x: SELECTOR.x, z: SELECTOR.z, r: 0.2 });
 addBox(MAQUETA.x, MAQUETA.z, MAQUETA.d / 2, MAQUETA.w / 2);
 circles.push({ x: BINOC.x, z: BINOC.z, r: 0.14 });
-addBox(MIRROR.x, MIRROR.z, MIRROR.w / 2, MIRROR.d / 2);
 circles.push({ x: SIGN.x, z: SIGN.z, r: 0.25 });
 // ramp handrails
 addSeg(RAMP.x0, RAMP.z0, RAMP.x0, RAMP.z1, 0.1);
 addSeg(RAMP.x1, RAMP.z0, RAMP.x1, RAMP.z1, 0.1);
 for (const t of TREES) if (!t.far && t.kind !== 'guadua') circles.push({ x: t.x, z: t.z, r: 0.45 });
 for (const t of TREES) if (!t.far && t.kind === 'guadua') circles.push({ x: t.x, z: t.z, r: 1.1 });
-// guadua tunnel: side walls between frames (open at both ends), prisms, tower, stable and paddock
+// guadua tunnel: side walls between frames (open at both ends), prisms, stable and paddock
 {
   const side = (s: number, k: number) => { const f = frameAt(s); const w = widthAt(s) / 2; return [f.p.x + f.r.x * w * k, f.p.z + f.r.z * w * k] as const; };
   for (let i = 0; i < NBAYS; i++) {
@@ -55,15 +51,9 @@ void SLIDERS; void EDGE_X;
 export const inDeck = (x: number, z: number) => x > DECK.x0 && x < DECK.x1 && z > DECK.z0 && z < DECK.z1;
 export const inRamp = (x: number, z: number) => x > RAMP.x0 && x < RAMP.x1 && z >= DECK.z1 && z < RAMP.z1;
 
-/** Ground height; inside the tower picks the floor / stair / ramp surface reachable from refY (feet height). */
-export function groundY(x: number, z: number, refY?: number) {
-  const base = baseGround(x, z);
-  const S = towerSurfaces(x, z);
-  if (!S.length) return base;
-  const ref = refY ?? base + 0.5;
-  let best = base;
-  for (const h of S) if (h <= ref + 0.5 && h > best) best = h;
-  return best;
+/** Ground height (refY is kept for API compatibility; there are no stacked floors any more). */
+export function groundY(x: number, z: number, _refY?: number) {
+  return baseGround(x, z);
 }
 
 function baseGround(x: number, z: number) {
@@ -81,14 +71,8 @@ export function walkable(x: number, z: number) {
   return heightAt(x, z) > WATER_Y + 0.12;
 }
 
-export function blocked(x: number, z: number, r = 0.28, y?: number) {
+export function blocked(x: number, z: number, r = 0.28, _y?: number) {
   if (!walkable(x, z)) return true;
-  const fy = y ?? groundY(x, z);
-  for (const b of yboxes) {
-    if (fy < b.y0 || fy > b.y1) continue;
-    const qx = Math.max(b.cx - b.hx, Math.min(b.cx + b.hx, x)), qz = Math.max(b.cz - b.hz, Math.min(b.cz + b.hz, z));
-    if ((x - qx) ** 2 + (z - qz) ** 2 < r * r) return true;
-  }
   for (const b of boxes) {
     const dx = x - b.cx, dz = z - b.cz;
     const lx = dx * b.c + dz * b.s, lz = -dx * b.s + dz * b.c;

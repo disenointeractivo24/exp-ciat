@@ -88,7 +88,7 @@ const pathAt = (s: number) => {
 const pathWidth = () => PATH_WIDTH + 0.3;
 /** The eco path to the deck, in timber planks like the tunnel and the stepped zone. */
 export function EcoPath() {
-  if (PATH_LEN < 2) return null; // the tower ramp now continues straight from the deck ramp
+  if (PATH_LEN < 2) return null; // the deck ramp ends right on the ground
   return (
     <group>
       <PlankWalk at={pathAt} length={PATH_LEN} width={pathWidth} name="Sendero_tablones" />

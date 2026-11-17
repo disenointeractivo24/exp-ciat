@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DECK, MOUND, RAMP, TOWER, WATER_Y } from './layout';
+import { DECK, MOUND, RAMP, WATER_Y } from './layout';
 import { STEPS, TUNNEL_LEN, tunnelCurve, tunnelDist } from './tunnel';
 
 // ---------------------------------------------------------------- noise
@@ -42,7 +42,7 @@ export function lagoonD(x: number, z: number) {
 // ---------------------------------------------------------------- ecological path
 const PATH_CTRL = [
   new THREE.Vector3(-1.5, 0, RAMP.z1 - 0.05),
-  new THREE.Vector3(TOWER.x, 0, TOWER.z - 10.0), // deck ramp → tower ramp, no path in between
+  new THREE.Vector3(-0.7, 0, 8.4), // foot of the deck ramp
 ];
 export const pathCurve = new THREE.CatmullRomCurve3(PATH_CTRL, false, 'centripetal');
 export const PATH_PTS: THREE.Vector3[] = pathCurve.getSpacedPoints(110);
@@ -103,18 +103,13 @@ const HF = new Float32Array(N * N);
           h = mix(hc, h, smoothstep(2.4, 5.5, td.d));
         }
       }
-      // level the tower site (level-1 platform, ramp and a margin around them)
-      {
-        const ox = Math.max(TOWER.x - 6 - x, x - TOWER.x - 6, 0), oz = Math.max(TOWER.z - 5.5 - z, z - TOWER.z - 9.5, 0), od = Math.hypot(ox, oz);
-        if (od < 4) h = mix(rawHeight(TOWER.x, TOWER.z), h, smoothstep(0, 4, od));
-      }
       // stepped zone: an even slope from the tunnel exit up to the foot of the deck ramp
       {
         const ox = Math.max(STEPS.x0 - x, x - STEPS.x1, 0), oz = Math.max(STEPS.z0 - z, z - STEPS.z1, 0), od = Math.hypot(ox, oz);
         if (od < 2) {
           const zm = (STEPS.z0 + STEPS.z1) / 2;
           const hw = Math.max(rawHeight(STEPS.x0 - 1, zm), WATER_Y + 0.3), he = rawHeight(-1.5, RAMP.z1 + 0.3);
-          const k = Math.min(1, Math.max(0, (x - STEPS.x0) / (STEPS.x1 - STEPS.x0)));
+          const k = Math.min(1, Math.max(0, (x - STEPS.x0) / (STEPS.xt - STEPS.x0)));
           h = mix(hw + (he - hw) * k - 0.03, h, smoothstep(0.3, 2, od));
         }
       }

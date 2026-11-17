@@ -31,21 +31,19 @@ export const STRUCT_POSTS: [number, number][] = [
 
 export interface BenchDef { id: string; x: number; z: number; len: number; depth: number; rot: number; name: string }
 // rot = yaw the seated visitor faces (0 = toward -Z / lagoon).
-// Zones: WEST = rest (benches facing the clear railing), EAST = activity (layers, model, binoculars, wheel),
-// CENTRE = canopy mirror, SOUTH = arrival. A third bench by the mural faces the lagoon diagonally (conversation bench).
+// The interior is a rest area around the tactile model in the centre: three benches in a symmetric U that opens
+// toward the lagoon (north), all facing the model. 1.2 m clear between each bench and the table (wheelchair turning
+// space); the ramp arrives at the south-west corner, between the west and south benches.
 export const BENCHES: BenchDef[] = [
-  { id: 'bench-0', x: -2.9, z: 0.2, len: 1.6, depth: 0.64, rot: 0, name: 'Banca oeste' },
-  { id: 'bench-1', x: -0.4, z: 0.2, len: 1.6, depth: 0.64, rot: 0, name: 'Banca central' },
-  { id: 'bench-2', x: -2.75, z: 1.95, len: 1.6, depth: 0.64, rot: -Math.PI / 4, name: 'Banca del mural' },
+  { id: 'bench-0', x: -2.25, z: -0.2, len: 1.6, depth: 0.64, rot: -Math.PI / 2, name: 'Banca oeste' },
+  { id: 'bench-1', x: 2.25, z: -0.2, len: 1.6, depth: 0.64, rot: Math.PI / 2, name: 'Banca este' },
+  { id: 'bench-2', x: 0, z: 1.75, len: 1.6, depth: 0.64, rot: 0, name: 'Banca sur' },
 ];
 
 // Wheel: three discs side by side at 0.85–1.25 m (reachable seated or standing), in the south-east corner,
 // facing west so the lagoon is behind it; a reveal window opens mechanically when the three symbols line up.
 export const WHEEL = { x: 3.2, z: 2.05, rot: -Math.PI / 2, width: 1.6 };
 
-// "Elevar la mirada" without tilting the head back: a table-height mirror under the perforated ceiling.
-// Looking down into it you see the canopy… and yourself in it.
-export const MIRROR = { x: 0.9, z: 1.3, w: 1.0, d: 0.7, top: 0.78 };
 
 export interface SliderDef { id: string; x: number; z: number; rot: number; len: number; variant: 0 | 1; title: string }
 export const SLIDERS: SliderDef[] = [
@@ -58,7 +56,7 @@ export const SLIDE_Y1 = 1.45;
 export const SLIDE_OFFSET = 0.13; // mounted on the deck side of the handrail
 
 // Night projection control post, at the arrival, facing into the deck (visitor stands north of it).
-export const SELECTOR = { x: 0.35, z: 2.62, rot: Math.PI };
+export const SELECTOR = { x: 1.5, z: 2.62, rot: Math.PI }; // south edge, east of the south bench
 /** Night gobo projectors hanging from the central beam (x = 0), aimed only at the floor. */
 export const GOBOS: { pos: [number, number, number]; target: [number, number, number]; zone: string }[] = [
   { pos: [-0.14, 0, -1.6], target: [-1.75, 0, -1.35], zone: 'frente a las bancas' },
@@ -67,25 +65,21 @@ export const GOBOS: { pos: [number, number, number]; target: [number, number, nu
 ];
 export const SIGN = { x: 0.35, z: 7.7, rot: 0 };
 
-// "Lo que se ve desde la torre", at ground level: tactile relief model + fixed binoculars at seated eye height.
-export const MAQUETA = { x: 3.0, z: -1.25, w: 0.9, d: 0.7, top: 0.8 }; // w along z, d along x; visitor stands on the west side
+// "La laguna desde arriba": the tactile relief model is the centrepiece of the deck, reachable from all four sides
+// (0.8 m top, knee clearance for a wheelchair). Fixed binoculars at seated eye height in the north-east corner.
+export const MAQUETA = { x: 0, z: -0.2, w: 1.0, d: 1.4, top: 0.8 }; // w along z, d along x
 export const BINOC = { x: 3.25, z: -2.66, eye: 1.18 };
-/** Observation tower, south of the deck at the end of the plank path (as marked on the site sketch). */
-export const TOWER = { x: -0.7, z: 18.4 }; // its ramp starts where the deck ramp ends
-// Shadow clock: a single 14 cm oculus in the perforated ceiling whose light spot crosses hour marks on the floor.
-export const OCULUS = { x: -0.2, z: -0.75, r: 0.07 }; // calibrated for the real orientation of the site: the spot runs from the gap between the benches toward the lagoon
-export const CLOCK_HOURS = [10, 11, 12, 13, 14];
 
 // Rubbing plates for the visitor's paper passport: one per node of the "Red de la vida", all at 0.75–1.1 m.
 export type PlateNode = 'agua' | 'veg' | 'aves' | 'ins' | 'luz' | 'tu';
 export interface PlateDef { node: PlateNode; x: number; y: number; z: number; rot: number; tilt: number; where: string }
 export const PLATES: PlateDef[] = [
-  { node: 'luz', x: -0.1, y: 0.95, z: -EDGE_Z, rot: -Math.PI / 2, tilt: 0, where: 'en el poste frente al reloj de luz' },
-  { node: 'veg', x: -3.84, y: 0.95, z: -0.42, rot: Math.PI / 2, tilt: 0, where: 'en la celosía de guadua, junto a la banca oeste' },
+  { node: 'luz', x: -0.1, y: 0.95, z: -EDGE_Z, rot: -Math.PI / 2, tilt: 0, where: 'en el poste central de la baranda, frente a la laguna' },
+  { node: 'veg', x: -3.84, y: 0.95, z: -0.42, rot: Math.PI / 2, tilt: 0, where: 'en la celosía de guadua, detrás de la banca oeste' },
   { node: 'aves', x: BINOC.x, y: 0.82, z: BINOC.z + 0.065, rot: 0, tilt: 0, where: 'bajo los binoculares' },
   { node: 'ins', x: 2.86, y: 1.12, z: -EDGE_Z + 0.02, rot: 0, tilt: -1.1, where: 'en la baranda, junto a la capa del ecosistema' },
   { node: 'agua', x: MAQUETA.x - MAQUETA.d / 2 - 0.02, y: 0.7, z: MAQUETA.z + 0.28, rot: -Math.PI / 2, tilt: 0, where: 'en el borde de la maqueta táctil' },
-  { node: 'tu', x: MIRROR.x + 0.3, y: 0.66, z: MIRROR.z + MIRROR.d / 2 + 0.02, rot: 0, tilt: 0, where: 'en el borde del espejo del dosel' },
+  { node: 'tu', x: MAQUETA.x + 0.4, y: 0.7, z: MAQUETA.z + MAQUETA.w / 2 + 0.02, rot: 0, tilt: 0, where: 'en el borde sur de la maqueta' },
 ];
 
 // Railing segments: [x1, z1, x2, z2, graphicVariant]. Sliding-panel segments get extra hardware.

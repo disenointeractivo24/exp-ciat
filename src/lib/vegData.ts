@@ -1,7 +1,7 @@
 import { mulberry32 } from './shapes';
 import planCtx from '../data/ciatContext.json';
 import { heightAt, lagoonD, pathDist } from './terrain';
-import { DECK, RAMP, TOWER, WATER_Y } from './layout';
+import { DECK, RAMP, WATER_Y } from './layout';
 import { LAGOON_SIDE, PADDOCK, STEPS, fenceDist, TUNNEL_LEN, frameAt, tunnelDist } from './tunnel';
 
 // real roads from the CIAT plan (scene space): keep trees and grass off them
@@ -15,14 +15,10 @@ export function onRoad(x: number, z: number, m: number) {
   return false;
 }
 
-/** Keep the tunnel, the plaza, the tower, the stable and the fields clear of trunks and big plants. */
+/** Keep the tunnel, the plaza, the stable and the fields clear of trunks and big plants. */
 function inBuilt(x: number, z: number, m: number) {
   if (onRoad(x, z, m)) return true;
   if (x > -50 && x < 0 && z > -70 && z < 20 && tunnelDist(x, z).d < 2.4 + m) return true;
-  // tower site, and the view from its top platform toward the deck and the lagoon (north / north-east)
-  if (x > TOWER.x - 7.5 - m && x < TOWER.x + 7.5 + m && z > TOWER.z - 16 - m && z < TOWER.z + 11 + m) return true;
-  { const dx = x - TOWER.x, dz = z - TOWER.z, d = Math.hypot(dx, dz), a = Math.atan2(dx, -dz);
-    if (d > 6 && d < 48 && a > -0.05 && a < 0.85) return true; }
   if (x > STEPS.x0 - 0.5 - m && x < STEPS.x1 + 0.5 + m && z > STEPS.z0 - 0.5 - m && z < STEPS.z1 + 0.5 + m) return true;
   if (fenceDist(x, z) < 1.2 + m) return true; // keep the fence line clear (trees inside the pasture are fine)
   return false;
@@ -179,7 +175,6 @@ export const LILIES: Scatter[] = [];
     if (x > -50 && x < 0 && z > -70 && z < 20 && tunnelDist(x, z).d < 2.1) continue;
     if (x > STEPS.x0 - 0.2 && x < STEPS.x1 + 0.2 && z > STEPS.z0 - 0.2 && z < STEPS.z1 + 0.2) continue;
     if (onRoad(x, z, 0.3)) continue;
-    if (x > TOWER.x - 5.2 && x < TOWER.x + 6.6 && z > TOWER.z - 10.6 && z < TOWER.z + 8.3) continue; // tower platform + ramp
     const r = Math.hypot(x, z);
     if (r > 30 && rnd() < 0.6) continue;
     const d = lagoonD(x, z);

@@ -253,10 +253,3 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
   animation: fade .6s ease-out;
 }
 
-/* ---------- landscape viewer (tower level 3): a single round lens */
-.hud .visor-mask {
-  position: absolute; inset: 0; pointer-events: none; background: rgba(4, 10, 8, .95);
-  -webkit-mask-image: radial-gradient(circle at 50% 46%, transparent 0 34vmin, #000 35.5vmin);
-  mask-image: radial-gradient(circle at 50% 46%, transparent 0 34vmin, #000 35.5vmin);
-  animation: fade .6s ease-out;
-}

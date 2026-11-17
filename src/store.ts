@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 export type Mode = 'intro' | 'walk' | 'orbit' | 'seated' | 'focus' | 'tour';
 export type NightPattern = 'hojas' | 'aves' | 'agua';
-export type FocusId = 'slider-a' | 'slider-b' | 'wheel' | 'binoc' | 'maqueta' | 'espejo' | 'torre' | 'muro' | 'visor' | 'sombra-0' | 'sombra-1' | 'sombra-2';
+export type FocusId = 'slider-a' | 'slider-b' | 'wheel' | 'binoc' | 'maqueta';
 
 /** The six "miradas" of the visit. */
 export const JOURNEY = ['El túnel', 'Mirar abajo', 'Mirar a través', 'Conectar', 'Contemplar', 'Elevar la mirada'] as const;

@@ -1,4 +1,4 @@
-// Graphics for the guadua tunnel, the stable and the tower (everything printed or engraved on site).
+// Graphics for the guadua tunnel, and the stable (everything printed or engraved on site).
 import * as THREE from 'three';
 import { PALETTE } from './layout';
 import { beanLeaf, cassavaLeaf, flyingBird, grassClump, heron, mulberry32, xform, type Poly } from './shapes';

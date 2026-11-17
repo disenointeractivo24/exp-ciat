@@ -1,7 +1,7 @@
 // Real surroundings of the site, from the CIAT DWG plan ("CIAT PLANTAAA.dwg"): roads, buildings at their recorded
 // footprints and heights (drawn in the project palette), green areas and other bodies of water, in scene space.
 // The plan's individual trees are added to the scene's own tree system (lib/vegData.ts), so they share its style
-// (see src/data/ciatContext.json). The modelled site (terrain, lagoon, tunnel, deck, tower) sits at the user's pins.
+// (see src/data/ciatContext.json). The modelled site (terrain, lagoon, tunnel, deck) sits at the user's pins.
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';

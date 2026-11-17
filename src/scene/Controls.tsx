@@ -3,14 +3,12 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { env, useStore, type FocusId } from '../store';
-import { BENCHES, BINOC, EYE, FLOOR_Y, MAQUETA, MIRROR, TOWER, SEAT_EYE, SIGN, SLIDERS, SLIDE_OFFSET, START, WHEEL } from '../lib/layout';
+import { BENCHES, BINOC, EYE, FLOOR_Y, MAQUETA, SEAT_EYE, SIGN, SLIDERS, SLIDE_OFFSET, START, WHEEL } from '../lib/layout';
 import { groundY, inDeck, moveWithCollision } from '../lib/collision';
 import { activate, registry } from '../lib/interact';
 import { sound } from '../lib/audio';
 import { heightAt } from '../lib/terrain';
 import { HERONS } from '../lib/vegData';
-import { B, CORE, LEVEL, SHADOW_PANELS, T as TW } from '../lib/tower';
-import { anaEye, viewerEye } from './Tower';
 import { BAY, LAGOON_SIDE, NBAYS, PRISM_BAYS, STEPS, bayKind, frameAt, tunnelDist, widthAt } from '../lib/tunnel';
 
 type Pose = { pos: THREE.Vector3; yaw: number; pitch: number };
@@ -33,33 +31,10 @@ export function focusPose(id: FocusId): Pose {
   if (id === 'binoc') {
     return lookPose(new THREE.Vector3(BINOC.x, FLOOR_Y + BINOC.eye, BINOC.z + 0.16), BINOC_TARGET);
   }
-  if (id === 'visor') {
-    const e = viewerEye();
-    return lookPose(e, new THREE.Vector3(8.5, e.y - 4, -10));
-  }
-  if (id === 'muro') {
-    const wz = TW.z + CORE - 0.35;
-    return lookPose(new THREE.Vector3(TW.x, B() + LEVEL.l2 + 1.6, wz - 2.3), new THREE.Vector3(TW.x, B() + LEVEL.l2 + 1.35, wz));
-  }
-  if (id.startsWith('sombra-')) {
-    const p = SHADOW_PANELS[Number(id.slice(7))];
-    const px = TW.x + p.x, pz = TW.z + p.z, y = B() + LEVEL.l1;
-    return lookPose(new THREE.Vector3(px - 0.7, y + 1.65, pz - 3.1), new THREE.Vector3(px, y + 0.9, pz - 0.2));
-  }
-  if (id === 'torre') {
-    // top platform of the observation tower (9 m), looking over the whole lagoon
-    const y = heightAt(TOWER.x, TOWER.z) + 9 + 1.6;
-    const p = new THREE.Vector3(TOWER.x + 0.9, y, TOWER.z + 0.6);
-    return lookPose(p, new THREE.Vector3(8, 0, -15));
-  }
-  if (id === 'espejo') {
-    // standing (or seated) at the south edge, looking down into the mirror
-    const c = new THREE.Vector3(MIRROR.x, FLOOR_Y + MIRROR.top, MIRROR.z - 0.05);
-    return lookPose(new THREE.Vector3(MIRROR.x, FLOOR_Y + 1.45, MIRROR.z + MIRROR.d / 2 + 0.45), c);
-  }
   if (id === 'maqueta') {
     const c = new THREE.Vector3(MAQUETA.x, FLOOR_Y + MAQUETA.top, MAQUETA.z);
-    return lookPose(new THREE.Vector3(MAQUETA.x - 0.72, FLOOR_Y + 1.3, MAQUETA.z), c);
+    // from the south edge, as someone arriving from the ramp: the lagoon in the model lines up with the real one beyond
+    return lookPose(new THREE.Vector3(MAQUETA.x, FLOOR_Y + 1.35, MAQUETA.z + MAQUETA.w / 2 + 0.55), c);
   }
   // sliding layers: seen from a seated / wheelchair eye height (1.25 m), the height they were designed for
   const s = SLIDERS.find((d) => d.id === id)!;
@@ -124,13 +99,13 @@ export const TOUR = [
   },
   {
     title: 'Gradas bajas',
-    text: 'Al final, el túnel se abre poco a poco y unas gradas muy bajas, de pocos centímetros, suben la pequeña loma hasta el deck. Al frente aparece toda la laguna.',
-    pose: () => lookPose(new THREE.Vector3(STEPS.x0 - 1.2, heightAt(STEPS.x0 - 1.2, 9) + EYE, 9), new THREE.Vector3(-1.5, FLOOR_Y + 1.2, 1.5)),
-    feet: [STEPS.x0 - 1.2, 9],
+    text: 'Al final, el túnel se abre poco a poco y unas gradas muy bajas, de pocos centímetros y del mismo ancho del sendero, suben la pequeña loma hasta un descanso al pie de la rampa del deck. A la izquierda aparece toda la laguna.',
+    pose: () => lookPose(new THREE.Vector3(STEPS.x0 - 1.2, heightAt(STEPS.x0 - 1.2, 8.2) + EYE, 8.2), new THREE.Vector3(-1.5, FLOOR_Y + 1.0, 4.5)),
+    feet: [STEPS.x0 - 1.2, 8.2],
   },
   {
     title: 'Mirar abajo',
-    text: 'Cada mancha de luz es una hoja o un ave recortada en el techo, como bajo la copa de un samán. Un óculo deja pasar un solo punto de sol que recorre la línea de bronce del piso: es el reloj de luz, y funciona sin pantallas.',
+    text: 'Cada mancha de luz es una hoja o un ave recortada en el techo de madera, como bajo la copa de un samán. Las sombras se mueven con el sol a lo largo del día.',
     pose: () => lookPose(new THREE.Vector3(-1.65, FLOOR_Y + EYE, 1.0), new THREE.Vector3(-0.9, FLOOR_Y, -0.7)),
     feet: [-1.65, 1.0],
     mark: 1,
@@ -146,58 +121,28 @@ export const TOUR = [
     title: 'Conectar',
     text: 'Tres discos a la altura de la mano: fauna, vegetación y agua. Cuando los tres símbolos coinciden bajo las flechas, una compuerta de madera sube y revela la relación escrita detrás.',
     pose: () => focusPose('wheel'),
-    feet: [1.15, 2.3],
+    feet: [2.3, 2.0],
     mark: 3,
   },
   {
     title: 'Contemplar',
-    text: 'Bancas con espaldar y apoyabrazos, frente a una baranda de vidrio limpio. Sobre el pasamanos, una guía panorámica nombra lo que ves. Aquí no hay nada que resolver.',
+    text: 'El interior del deck es un lugar de descanso: tres bancas con espaldar y apoyabrazos rodean la maqueta y dejan abierta la vista a la laguna. Aquí no hay nada que resolver.',
     pose: () => seatPose(0),
-    feet: [-2.9, 0.95],
+    feet: [-1.55, 1.0],
     mark: 4,
   },
   {
     title: 'Elevar la mirada',
-    text: 'En el centro del deck, un espejo a la altura de una mesa refleja el techo: el bosque aparece abajo, y tú dentro de él. Elevar la mirada sin tener que levantar la cabeza.',
-    pose: () => focusPose('espejo'),
-    feet: [0.9, 2.15],
+    text: 'En el centro del deck, la maqueta táctil muestra la laguna vista desde arriba: el agua, la orilla, los árboles, el túnel y este deck. Elevar la mirada sin tener que subir a ningún lado.',
+    pose: () => focusPose('maqueta'),
+    feet: [0, 1.0],
     mark: 5,
   },
   {
-    title: 'Ver desde la torre',
-    text: 'Para quien no sube a la torre: una maqueta táctil muestra la laguna vista desde arriba, y unos binoculares a la altura de una persona sentada acercan las garzas de la orilla.',
-    pose: () => focusPose('maqueta'),
-    feet: [2.2, -1.25],
-  },
-  {
-    title: 'Llegada a la torre',
-    text: 'El sendero de tablones lleva a la torre de observación: tres niveles de madera y una rampa accesible. El primer nivel se recorre completo sin escaleras.',
-    pose: () => lookPose(new THREE.Vector3(TW.x - 4.5, heightAt(TW.x - 4.5, TW.z - 13) + EYE, TW.z - 13), new THREE.Vector3(TW.x, B() + 4.5, TW.z)),
-    feet: [TW.x - 1.5, TW.z - 11.5],
-  },
-  {
-    title: 'Nivel 1 · Descubrir',
-    text: '«Cada sombra revela una forma de vida.» Los paneles perforados giran sobre un eje: al moverlos, el sol —o de noche un proyector LED— dibuja hojas de yuca, fríjol y forrajes sobre el piso.',
-    pose: () => focusPose('sombra-1'),
-    feet: [TW.x + 1.2, TW.z + 4.4, B() + LEVEL.l1],
-  },
-  {
-    title: 'Nivel 2 · Conectar',
-    text: '«Todo está conectado.» Cinco capas transparentes —vegetación, agua, ganado, insectos y aves— se deslizan dentro de un marco. Con tres capas correctas, la frase de la relación se completa. Se maneja desde los dos lados, entre dos personas.',
-    pose: () => focusPose('muro'),
-    feet: [TW.x, TW.z + 1.0, B() + LEVEL.l2],
-  },
-  {
-    title: 'Nivel 3 · Elevar',
-    text: 'Desde la plataforma, unas láminas verticales parecen fragmentos sueltos. Solo desde el punto marcado en el piso se alinean en una imagen: agua, vegetación, aves, insectos y ganado en un mismo paisaje.',
-    pose: () => { const e = anaEye(); return { pos: e, yaw: 0, pitch: -0.02 }; },
-    feet: [TW.x + 0.3, TW.z + 2.7, B() + LEVEL.l3],
-  },
-  {
-    title: 'Elevar la mirada, conectar la vida',
-    text: 'El visor gira hacia la laguna, el deck, el túnel y el corral, y nombra lo que señalas. Al bajar, el muro de salida repite la idea del recorrido: cambiar de perspectiva revela las conexiones.',
-    pose: () => focusPose('visor'),
-    feet: [TW.x - 2.0, TW.z - 2.0, B() + LEVEL.l3],
+    title: 'Ver de cerca',
+    text: 'En la esquina de la laguna, unos binoculares fijos a la altura de una persona sentada acercan las garzas de la orilla.',
+    pose: () => focusPose('binoc'),
+    feet: [2.7, -2.0],
   },
 ];
 
@@ -321,7 +266,7 @@ export function CameraRig() {
       const r = el.getBoundingClientRect();
       env.mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
       const st = useStore.getState();
-      const canLook = st.mode === 'walk' || st.mode === 'seated' || st.mode === 'tour' || (st.mode === 'focus' && (st.focus === 'binoc' || st.focus === 'torre' || st.focus === 'visor'));
+      const canLook = st.mode === 'walk' || st.mode === 'seated' || st.mode === 'tour' || (st.mode === 'focus' && st.focus === 'binoc');
       if (!canLook || trans.current) return;
       let dx = 0, dy = 0;
       if (document.pointerLockElement === el) { dx = e.movementX; dy = e.movementY; }
@@ -375,7 +320,7 @@ export function CameraRig() {
     if (!import.meta.env.DEV) return;
     (window as any).__rig = { feet: feet.current, look: look.current, camera, gl, scene, store: useStore };
     (window as any).__exportOBJ = () => import('../lib/exportObj').then((m) => m.exportOBJ(scene));
-    (window as any).__exportTunnelOBJ = () => import('../lib/exportObj').then((m) => m.exportOBJ(scene, 'tunel_ciat', { owners: /^(Tunel|Gradas|Sendero|Establo|Vacas|Torre)/ }));
+    (window as any).__exportTunnelOBJ = () => import('../lib/exportObj').then((m) => m.exportOBJ(scene, 'tunel_ciat', { owners: /^(Tunel|Gradas|Sendero|Establo|Vacas)/ }));
   }, [camera, gl, scene]);
   const center = useMemo(() => new THREE.Vector2(0, 0), []);
   useFrame((_, rawDt) => {
@@ -383,7 +328,7 @@ export function CameraRig() {
     const st = useStore.getState();
     // binoculars: narrow field of view
     const pc = camera as THREE.PerspectiveCamera;
-    const wantFov = st.mode === 'focus' && !trans.current ? (st.focus === 'binoc' ? BINOC_FOV : st.focus === 'visor' ? 30 : 62) : 62;
+    const wantFov = st.mode === 'focus' && !trans.current ? (st.focus === 'binoc' ? BINOC_FOV : 62) : 62;
     if (Math.abs(pc.fov - wantFov) > 0.05) { pc.fov += (wantFov - pc.fov) * (1 - Math.exp(-rawDt * 6)); pc.updateProjectionMatrix(); }
     const tr = trans.current;
     if (tr) {
@@ -436,11 +381,11 @@ export function CameraRig() {
           if (!st.journey[1]) {
             st.mark(1);
             if (st.night) st.showToast('De noche, la luz cálida se dirige solo al piso: proyecta la vegetación sin deslumbrar a las aves que duermen en la orilla.', 'Mirar abajo', 'info', 9000);
-            else st.showToast('Cada mancha de luz es una hoja o un ave recortada en el techo, como bajo un dosel. Frente a las bancas, un solo punto de sol recorre la línea de bronce: es el reloj de luz.', 'Mirar abajo', 'info', 9500);
+            else st.showToast('Cada mancha de luz es una hoja o un ave recortada en el techo de madera, como bajo un dosel. En el centro, la maqueta muestra la laguna desde arriba.', 'Mirar abajo', 'info', 9500);
           }
         }
       }
-      if (visitedDeck.current && !summaryShown.current && nz > 9.5) {
+      if (visitedDeck.current && !summaryShown.current && nx < -8) {
         summaryShown.current = true;
         st.setSummary(true);
       }
@@ -461,7 +406,7 @@ export function CameraRig() {
     } else if (fixed.current) {
       const p = fixed.current;
       camera.position.copy(p.pos);
-      const free = st.mode === 'seated' || st.mode === 'tour' || (st.mode === 'focus' && (st.focus === 'binoc' || st.focus === 'torre' || st.focus === 'visor'));
+      const free = st.mode === 'seated' || st.mode === 'tour' || (st.mode === 'focus' && st.focus === 'binoc');
       if (free) euler.set(look.current.pitch, look.current.yaw, 0, 'YXZ');
       else euler.set(p.pitch, p.yaw, 0, 'YXZ');
       camera.quaternion.setFromEuler(euler);

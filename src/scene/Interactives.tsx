@@ -442,7 +442,7 @@ export function SignInteract() {
   const act = useCallback(() => {
     const st = useStore.getState();
     st.mark(0);
-    st.showToast('Antes de subir a la torre, aquí se mira la laguna desde el suelo, sin prisa: abajo, a través y hacia arriba. Toma un pasaporte y calca las seis placas del deck.', 'Pausa para observar.', 'info', 9000);
+    st.showToast('Aquí se mira la laguna desde el suelo, sin prisa: abajo, a través y hacia arriba. Toma un pasaporte y calca las seis placas del deck.', 'Pausa para observar.', 'info', 9000);
   }, []);
   useInteractable('sign', 'Leer letrero', ref, act, 4);
   return (

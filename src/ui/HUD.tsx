@@ -34,15 +34,15 @@ function Intro() {
         <p className="lema">«Elevar la mirada, conectar la vida.»</p>
         <p className="lead">
           La visita empieza en el túnel de la guadua y termina en el deck de descanso, junto a la laguna: un mirador
-          a nivel del suelo para quien prefiere observar sin subir. Toma un pasaporte y calca las seis placas del deck.
+          a nivel del suelo para observar sin prisa. Toma un pasaporte y calca las seis placas del deck.
         </p>
         <ol className="miradas">
           <li><b>El túnel</b> de guadua: prismas, ventanas a tres alturas y el corral.</li>
-          <li><b>Mirar abajo</b> las sombras del techo y el reloj de luz.</li>
+          <li><b>Mirar abajo</b> las sombras de hojas y aves que dibuja el techo.</li>
           <li><b>Mirar a través</b> de las capas, a la altura de quien está sentado.</li>
           <li><b>Conectar</b> fauna, vegetación y agua en la rueda.</li>
           <li><b>Contemplar</b> desde una banca con espaldar, frente al agua.</li>
-          <li><b>Elevar la mirada</b> en el espejo del dosel, sin levantar la cabeza.</li>
+          <li><b>Elevar la mirada</b> en la maqueta del centro: la laguna vista desde arriba.</li>
         </ol>
         <div className="keys">
           <span><kbd>W A S D</kbd> caminar</span>
@@ -181,7 +181,7 @@ const PROMPTS_DAY = [
   'Busca una garza en la orilla. Quieta, espera a su presa.',
   'Mira el agua: refleja el cielo, los árboles y las nubes.',
   'Sigue el vuelo de un ave hasta perderla de vista.',
-  'Cuando quieras, asómate al espejo del centro: el techo también es un bosque.',
+  'Cuando quieras, toca la maqueta del centro: así se ve la laguna desde arriba.',
 ];
 const PROMPTS_NIGHT = [
   'Respira. Deja que los ojos se acostumbren a la oscuridad.',
@@ -319,7 +319,7 @@ function Summary() {
   const n = LINKS.filter((l) => links[l.id]).length;
   const s = Object.keys(stamps).length;
   const closing =
-    s === 6 ? 'Tu pasaporte teje la red completa. Nada en la laguna vive aislado, tampoco nosotros. Llévalo a la torre.'
+    s === 6 ? 'Tu pasaporte teje la red completa. Nada en la laguna vive aislado, tampoco nosotros. Llévalo contigo.'
       : s >= 3 ? 'Tu pasaporte ya muestra buena parte de la red. Las placas que faltan siguen en el deck, esperando otra mirada.'
         : 'Apenas empieza tu red. Vuelve cuando quieras: cada hora y cada mirada revelan algo distinto.';
   return (
@@ -379,7 +379,6 @@ export function HUD() {
       {mode === 'seated' && <Seated />}
       {mode === 'orbit' && <div className="prompt subtle">Arrastra para orbitar · rueda para acercar · <kbd>V</kbd> volver al recorrido</div>}
       {mode === 'focus' && focus === 'binoc' && <div className="binoc-mask" aria-hidden />}
-      {mode === 'focus' && focus === 'visor' && <div className="visor-mask" aria-hidden />}
       <Prompt />
       <Toast />
       {!minimal && mode !== 'tour' && <Network />}

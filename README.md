@@ -41,11 +41,11 @@ El recorrido es un cambio progresivo de perspectiva. Cada estación revela una r
 | Mirada | Dónde | Qué se descubre | Conexión |
 | --- | --- | --- | --- |
 | 1. Pausa | letrero del sendero | invitación a mirar de otra manera | — |
-| 2. Mirar abajo | bajo la pérgola + control de hora | la luz filtrada como en un dosel; 3 momentos del día | Luz ↔ Vegetación |
+| 2. Mirar abajo | bajo el techo de madera calada + control de hora | la luz filtrada como en un dosel; 3 momentos del día | Luz ↔ Vegetación |
 | 3. Mirar a través | capas transparentes de la baranda | quién habita dosel, orilla y superficie | Vegetación ↔ Aves, Agua ↔ Aves, Vegetación ↔ Insectos |
 | 4. Conectar | rueda de la biodiversidad | 4 relaciones (orilla, refugio, superficie, profundidad) | Agua ↔ Aves/Insectos/Vegetación |
 | 5. Contemplar | banca (≈15 s sentado, con indicaciones guiadas) | detenerse también es cuidar | Tú ↔ Agua |
-| 6. Elevar la mirada | mirar al techo bajo la pérgola | el techo es un bosque; tú haces parte de la red | Tú ↔ Vegetación |
+| 6. Elevar la mirada | maqueta del centro | la laguna vista desde arriba; tú haces parte de la red | Tú ↔ Vegetación |
 
 Al retomar el sendero aparece la **bitácora de observación** con lo descubierto. La hora del día cambia el texto contextual y el ritmo de la fauna (más garzas en vuelo al amanecer y al atardecer). De noche, el texto explica por qué la luz apunta solo al piso.
 
@@ -61,21 +61,25 @@ Al retomar el sendero aparece la **bitácora de observación** con lo descubiert
 
 ## Versión construible (adultos mayores, a nivel del suelo)
 
-El deck es el descanso antes de la torre de avistamiento. Todo lo que el visitante lee o toca existe físicamente, sin pantallas:
+El deck es el final del sendero. Todo lo que el visitante lee o toca existe físicamente, sin pantallas:
 
 - **Pasaporte de calcos**: seis placas de bronce en relieve (Luz, Vegetación, Aves, Insectos, Agua, Tú) entre 0,75 y 1,1 m. Cada calco llena un nodo de la red impresa en el pasaporte de papel; una conexión aparece cuando sus dos nodos están calcados.
-- **Reloj de luz**: un óculo de 14 cm en el techo proyecta un punto de sol que recorre marcas de bronce (10–14 h) en el piso, frente a las bancas (calibrado con la orientación real del sitio).
-- **Bancas** con espaldar y apoyabrazos, espacio de 0,9 m entre ellas para silla de ruedas, frente a una **baranda de vidrio con puntos anticolisión para aves** (pasamanos a 1,0 m) y una **guía panorámica** sobre el pasamanos.
-- **Banca del mural**, en diagonal hacia la laguna, para conversar.
-- **Espejo del dosel** en el centro: una mesa-espejo a 0,78 m que refleja el techo perforado. «Elevar la mirada» sin levantar la cabeza; el visitante se ve a sí mismo dentro del bosque (placa «Tú»).
-- **Capas deslizantes** entre 0,85 y 1,45 m (altura de ojos sentado o en silla de ruedas), con las tres paradas impresas en el riel; en esos tramos la baranda es de vidrio hasta 1,47 m, sin pasamanos que cruce la capa.
+- **Maqueta táctil en el centro** («la laguna desde arriba»): mesa de 1,4 × 1,0 m a 0,8 m, libre por debajo para usarla sentado o en silla de ruedas desde cualquier lado. Es la estación «Elevar la mirada» y lleva la placa «Tú» en su borde sur.
+- **Tres bancas** con espaldar y apoyabrazos alrededor de la maqueta, mirándola (oeste, este y sur), en U simétrica abierta hacia la laguna; 1,2 m libres entre cada banca y la mesa. Barandas de **varas de guadua** (separación menor a 10 cm, pasamanos de madera a 1,0 m) con **guía panorámica** sobre el pasamanos.
+- **Capas deslizantes** entre 0,85 y 1,45 m (altura de ojos sentado o en silla de ruedas), con las tres paradas impresas en el riel; en esos tramos las varas de guadua llegan a 0,85 m y la franja de 0,85 a 1,47 m es un vidrio claro con puntos anti-aves enmarcado en guadua (el único vidrio del deck), sin pasamanos ni postes que crucen la capa.
 - **Rueda** con tres discos en fila a 1,05 m; al alinear tres símbolos sube una compuerta de madera y revela la relación impresa.
-- **Maqueta táctil** («lo que se ve desde la torre») y **binoculares fijos** a 1,18 m para quien no sube a la torre. La posición de la torre en la maqueta es referencial (`TOWER` en `src/lib/layout.ts`).
+- **Binoculares fijos** a 1,18 m en la esquina noreste.
 - **Proyectores nocturnos**: tres proyectores LED con gobo colgados 10 cm bajo la viga central (x = 0), a ≈2,4 m del piso, apuntando solo al piso: frente a las bancas, zona de las capas y llegada. La botonera de la llegada cambia la composición (Hojas / Aves / Agua).
 
-Zonas: **oeste** descanso (bancas), **este** actividad (capas, maqueta, binoculares, rueda), **centro** espejo, **sur** llegada y botonera.
+Zonas: **centro** la maqueta, rodeada por la zona de descanso (bancas); en el borde, las capas de la baranda, los binoculares (noreste) y la rueda (sureste); **sur** llegada y botonera.
 
-El control de hora del panel es solo una simulación para la presentación; en sitio, la hora la marca el reloj de luz.
+El control de hora del panel es solo una simulación para la presentación.
+
+## Materiales
+
+El deck usa los mismos materiales que el sendero: columnas de tres guaduas sobre dados de concreto, vigas dobles de guadua, barandas de varas de guadua con pasamanos de madera y un techo de tableros de madera calada (sin aluminio ni policarbonato; el único vidrio es la franja detrás de las capas deslizantes). La sombra la dan los recortes del techo y los árboles.
+
+La salida del sendero tiene el mismo ancho del túnel (3 m): unas gradas bajas suben la loma hasta un descanso de tablones al pie de la rampa del deck.
 
 ## Exportar a Blender
 
@@ -89,21 +93,13 @@ Con `npm run dev` abierto en el navegador, en la consola: `__exportOBJ()`. Escri
 
 La calidad de render se ajusta sola (resolución adaptativa) según el rendimiento de la GPU.
 
-## Torre de observación
-
-Al sur del deck, al final del sendero de tablones. Tres niveles (≈10 m) con rampa 1:12 y escaleras de 18 peldaños por tramo; se suben caminando. Datos y superficies en `src/lib/tower.ts`, modelo en `src/scene/Tower.tsx`.
-
-- **Nivel 1 · Descubrir** (+0,45 m, accesible por rampa): terraza de sombras con tres paneles perforados que giran sobre un eje con manija; de noche, un proyector LED detrás de cada panel. Muro ilustrado «Cada sombra revela una forma de vida.» y muro de salida «Elevar la mirada, conectar la vida.».
-- **Nivel 2 · Conectar** (+3,75 m): muro de relaciones con cinco capas transparentes (vegetación, agua, ganado, insectos, aves) que se deslizan dentro de un marco; con tres capas correctas se completa la frase de la relación. Se maneja desde los dos lados.
-- **Nivel 3 · Elevar** (+7,05 m): anamorfosis de nueve láminas que forman una imagen solo desde el punto marcado en el piso; visor giratorio que nombra lo que señala; guía de orientación en la baranda norte; banca bajo cubierta parcial perforada.
-
 ## Ubicación real (plano DWG del CIAT)
 
 `CIAT PLANTAAA.dwg` (capas TPX, metros) se convirtió con LibreDWG (WASM) a `src/data/ciatContext.json`: vías, 183 edificios con su altura, árboles individuales, zonas verdes y cuerpos de agua, ya en coordenadas de la escena. Scripts en `tools/` (`dwg-read.mjs` lee el DWG, `dwg-to-context.mjs` lo transforma; requieren `npm i @mlightcad/libredwg-web` en una carpeta aparte).
 
-- Ubicación: la manzana al oriente de los dos edificios cuadrados grandes del plano. Laguna, deck, torre y sendero de entrada siguen la vista marcada por el usuario: laguna amplia de ~64 × 46 m, deck en su borde norte, torre ~20 m más allá, y el túnel de guadua de ~75 m que arranca sobre la vía sur (conectado al camino principal) y corre por el costado de la laguna hasta el deck. Al otro lado del túnel, todo el potrero hasta el borde del terreno es el corral de las vacas (~70 × 66 m, solo cercas, 14 vacas). El sol sale por el oriente real.
+- Ubicación: la manzana al oriente de los dos edificios cuadrados grandes del plano. Laguna, deck y sendero de entrada siguen la vista marcada por el usuario: laguna amplia de ~64 × 46 m, deck en su borde norte y el túnel de guadua de ~75 m que arranca sobre la vía sur (conectado al camino principal) y corre por el costado de la laguna hasta el deck. Al otro lado del túnel, todo el potrero hasta el borde del terreno es el corral de las vacas (~70 × 66 m, solo cercas, 14 vacas). El sol sale por el oriente real.
 - Contexto en el estilo del proyecto: los árboles del plano usan el mismo modelo de árbol de la escena (hasta 600 m), los edificios siguen huellas y alturas del plano con fachada crema, zócalo de madera y antepecho verde.
-- `export/ubicacion_en_plano_DWG.svg` muestra el deck, la torre, el túnel y la laguna dibujados sobre el plano.
+- `export/ubicacion_en_plano_DWG.svg` muestra el deck, el túnel y la laguna dibujados sobre el plano (aún incluye la torre retirada).
 
 ## Señalética oficial
 
@@ -114,16 +110,17 @@ Las piezas de `sostenibilidad señaletica/` se copiaron a `src/assets/senaletica
 | Mupi «entrada sendero» | tótem en la entrada del túnel, junto a la vía |
 | Paneles de aves (silueta + «Conócela»): urutau y garza blanca | caras de los dos prismas giratorios del túnel |
 | Horizontal «Establo de vacas» | tablero frente a las ventanas del corral, dentro del túnel |
-| Horizontal «Deck» / «Torre» | letrero de llegada al deck (frente) / al salir hacia la torre (reverso) |
+| Horizontal «Deck» / «Regreso» | letrero de llegada al deck (frente) / al salir del deck (reverso) |
 | Discos 1–3, «Biodiversidad», «¿Qué relación tienen?» | rueda de la biodiversidad: discos, título y franja de instrucciones |
-| Niveles 1–3 | torre: tótem del nivel 1 y letreros en el arranque de cada escalera |
 
 | Horizontal «Túnel» | sobre el pórtico de entrada del túnel, hacia la vía |
 | Horizontal «Laguna» | donde el túnel se abre a la laguna, del lado de la laguna |
-| Horizontal «Regreso» | al pie de la rampa de la torre, para quien baja |
-| Íconos de lugares | postes: Túnel (junto al pórtico), Establo (esquina del corral junto a la entrada), Laguna (orilla), Deck + Torre (cruce al final de las gradas) |
-| Silueta «extruir pato» (LAGUNA) | recorte flotando en la laguna frente al deck |
-| Silueta «extruir garza» (Regreso) | recorte de pie en el cruce deck / torre |
+| Horizontal «Regreso» | al pie de la rampa del deck, para quien sale |
+| Íconos de lugares | postes: Túnel (junto al pórtico), Establo (esquina del corral junto a la entrada), Laguna (orilla), Deck (cruce al final de las gradas) |
+| Animales recortados (`Señaletica con animales`) | focha «Túnel filtros de luz» junto al pórtico; vaca «Establo» en la esquina del corral; pato «Laguna» flotando frente al deck; urutau «Deck» al inicio de las gradas; garza «Regreso» junto a las gradas, paralela a ellas para que su flecha apunte al túnel |
+| Ventanas hacia el corral | marcos para fotos («Recuerda este momento») alrededor de cada ventana |
+| Prismas giratorios | tapas redondas y aristas redondeadas (sin puntas); dentro, la escultura del ave en madera pintada |
+| Niveles 1–3 del DECK | copiados como `nivel_1..3.png`, todavía sin ubicar |
 | Siluetas urutau y garza | recortadas en el techo del túnel sobre cada prisma: su sombra dibuja el ave en los tablones («¿Quién proyecta esta silueta?») |
 
 En los recortes con texto, la fuente Sora se reemplaza por una sans-serif común al imprimir la cara.

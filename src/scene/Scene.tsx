@@ -13,10 +13,9 @@ import { Benches, BiodiversityWheel, PatternSelector, SignInteract, SlidingPanel
 import { GroundCover, Trees } from './Vegetation';
 import { Dragonflies, Fireflies, FlyingBirds, Herons } from './Wildlife';
 import { CameraRig } from './Controls';
-import { Binoculars, CanopyMirror, Plates, ShadowClock, TactileModel } from './Extras';
+import { Binoculars, Plates, TactileModel } from './Extras';
 import { GuaduaTunnel } from './Tunnel';
 import { Stable } from './TunnelSite';
-import { ObservationTower } from './Tower';
 import { CiatContext } from './CiatContext';
 import { SignageExtras } from './SignageExtras';
 
@@ -62,14 +61,11 @@ export function Scene() {
         <FlyingBirds />
         <Dragonflies />
         <Fireflies />
-        <ShadowClock />
         <TactileModel />
         <Binoculars />
-        <CanopyMirror />
         <Plates />
         <GuaduaTunnel />
         <Stable />
-        <ObservationTower />
         <CiatContext />
         <SignageExtras />
         <CameraRig />
